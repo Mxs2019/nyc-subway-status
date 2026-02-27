@@ -12,7 +12,10 @@ import { PageHeader } from "@/components/page-header";
 import { RouteBullet } from "@/components/route-bullet";
 import { ArrivalTime } from "@/components/arrival-time";
 
+// No caching — every page load fetches fresh realtime data server-side
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 interface Props {
   params: Promise<{ stationSlug: string; routeSlug: string }>;
