@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import type { Route, Station } from "@/lib/gtfs";
 import { RouteBullet } from "./route-bullet";
 import { SearchFilter } from "./search-filter";
@@ -32,7 +31,7 @@ export function StationList({
             const routeIds = stationRoutes[station.id] || [];
             return (
               <li key={station.id} className="py-2">
-                <Link
+                <a
                   href={`/stops/${station.slug}`}
                   className="flex items-center justify-between gap-2 no-underline hover:opacity-70"
                 >
@@ -52,7 +51,7 @@ export function StationList({
                       );
                     })}
                   </span>
-                </Link>
+                </a>
               </li>
             );
           })}

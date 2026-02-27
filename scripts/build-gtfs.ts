@@ -11,6 +11,7 @@ import { parse } from "csv-parse/sync";
 import * as fs from "fs";
 import JSZip from "jszip";
 import * as path from "path";
+import { STATION_COMPLEXES } from "../src/data/station-complexes";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -99,6 +100,22 @@ function parseCsv<T>(content: string): T[] {
 }
 
 // ---------------------------------------------------------------------------
+// Complex merging helpers
+// ---------------------------------------------------------------------------
+
+// Build a reverse map: gtfs_stop_id → canonical station id (first in complex)
+function buildComplexMergeMap(): Map<string, string> {
+  const mergeMap = new Map<string, string>();
+  for (const ids of Object.values(STATION_COMPLEXES)) {
+    const canonical = ids[0]; // first ID is the canonical one
+    for (const id of ids) {
+      mergeMap.set(id, canonical);
+    }
+  }
+  return mergeMap;
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -135,11 +152,9 @@ async function main() {
   );
 
   // -----------------------------------------------------------------------
-  // Build stations (group by parent_station)
+  // Build parent stations and child mappings
   // -----------------------------------------------------------------------
 
-  // In MTA GTFS, location_type=1 is a parent station,
-  // location_type=0 (or empty) is a platform/stop
   const parentStops = stops.filter((s) => s.location_type === "1");
   const childStops = stops.filter(
     (s) => s.location_type === "0" || s.location_type === ""
@@ -153,14 +168,14 @@ async function main() {
     }
   }
 
-  // Build station objects
-  const stationsMap = new Map<string, Station>();
+  // Build initial station objects (before merging)
+  const rawStationsMap = new Map<string, Station>();
   for (const parent of parentStops) {
     const children = childStops
       .filter((c) => c.parent_station === parent.stop_id)
       .map((c) => c.stop_id);
 
-    stationsMap.set(parent.stop_id, {
+    rawStationsMap.set(parent.stop_id, {
       id: parent.stop_id,
       name: parent.stop_name,
       slug: stationSlug(parent.stop_name),
@@ -170,10 +185,10 @@ async function main() {
     });
   }
 
-  // Handle orphan stops (no parent) — treat each as its own station
+  // Handle orphan stops (no parent)
   for (const child of childStops) {
-    if (!child.parent_station && !stationsMap.has(child.stop_id)) {
-      stationsMap.set(child.stop_id, {
+    if (!child.parent_station && !rawStationsMap.has(child.stop_id)) {
+      rawStationsMap.set(child.stop_id, {
         id: child.stop_id,
         name: child.stop_name,
         slug: stationSlug(child.stop_name),
@@ -184,7 +199,43 @@ async function main() {
     }
   }
 
-  // Deduplicate slugs by appending station ID suffix
+  // -----------------------------------------------------------------------
+  // Merge station complexes
+  // -----------------------------------------------------------------------
+
+  const complexMerge = buildComplexMergeMap();
+
+  // Resolve parent station to its canonical complex representative
+  // e.g., L03 → R20 (first in complex 602), 635 → R20
+  function resolveStation(parentId: string): string {
+    return complexMerge.get(parentId) || parentId;
+  }
+
+  // Also update childToParent to resolve through complexes
+  for (const [childId, parentId] of childToParent) {
+    childToParent.set(childId, resolveStation(parentId));
+  }
+
+  // Build merged stations map
+  const stationsMap = new Map<string, Station>();
+
+  for (const [rawId, rawStation] of rawStationsMap) {
+    const canonicalId = resolveStation(rawId);
+
+    if (stationsMap.has(canonicalId)) {
+      // Merge into existing
+      const existing = stationsMap.get(canonicalId)!;
+      existing.childStopIds.push(...rawStation.childStopIds);
+    } else {
+      // Create new entry with canonical ID
+      stationsMap.set(canonicalId, {
+        ...rawStation,
+        id: canonicalId,
+      });
+    }
+  }
+
+  // Deduplicate slugs (shouldn't be needed after complex merge, but safety)
   const slugCounts = new Map<string, string[]>();
   for (const station of stationsMap.values()) {
     const existing = slugCounts.get(station.slug) || [];
@@ -219,33 +270,30 @@ async function main() {
   // Build station↔route mappings via stop_times → trips → routes
   // -----------------------------------------------------------------------
 
-  // trip_id → route_id lookup
   const tripRoute = new Map<string, string>();
   for (const trip of trips) {
     tripRoute.set(trip.trip_id, trip.route_id);
   }
 
-  // Valid route IDs set
   const validRouteIds = new Set(routesList.map((r) => r.id));
 
-  // station_id → Set<route_id>
   const stationRoutes = new Map<string, Set<string>>();
-  // route_id → Set<station_id>
   const routeStations = new Map<string, Set<string>>();
 
   for (const st of stopTimes) {
     const routeId = tripRoute.get(st.trip_id);
     if (!routeId || !validRouteIds.has(routeId)) continue;
 
-    // Resolve the child stop to its parent station
+    // Resolve child stop → parent → complex canonical
     const parentId = childToParent.get(st.stop_id) || st.stop_id;
-    if (!stationsMap.has(parentId)) continue;
+    const canonicalId = resolveStation(parentId);
+    if (!stationsMap.has(canonicalId)) continue;
 
-    if (!stationRoutes.has(parentId)) stationRoutes.set(parentId, new Set());
-    stationRoutes.get(parentId)!.add(routeId);
+    if (!stationRoutes.has(canonicalId)) stationRoutes.set(canonicalId, new Set());
+    stationRoutes.get(canonicalId)!.add(routeId);
 
     if (!routeStations.has(routeId)) routeStations.set(routeId, new Set());
-    routeStations.get(routeId)!.add(parentId);
+    routeStations.get(routeId)!.add(canonicalId);
   }
 
   // -----------------------------------------------------------------------
@@ -265,7 +313,6 @@ async function main() {
 
   const routeStationsObj: Record<string, string[]> = {};
   for (const [routeId, stationIds] of routeStations) {
-    // Sort stations in the order they appear (by name for now)
     routeStationsObj[routeId] = Array.from(stationIds).sort((a, b) => {
       const sa = stationsMap.get(a);
       const sb = stationsMap.get(b);
@@ -279,6 +326,7 @@ async function main() {
     stationCount: stations.length,
     routeCount: routesList.length,
     stationRouteLinks: Object.keys(stationRoutesObj).length,
+    complexesMerged: Object.keys(STATION_COMPLEXES).length,
   };
 
   const writes = [
@@ -300,13 +348,13 @@ async function main() {
   // -----------------------------------------------------------------------
 
   console.log("\nBuild complete:");
-  console.log(`  Stations: ${stations.length}`);
+  console.log(`  Stations: ${stations.length} (after merging ${Object.keys(STATION_COMPLEXES).length} complexes)`);
   console.log(`  Routes: ${routesList.length}`);
   console.log(
     `  Station↔Route links: ${Object.values(stationRoutesObj).reduce((s, v) => s + v.length, 0)}`
   );
 
-  // Quick validation: check Union Square
+  // Validation: check Union Square
   const unionSq = stations.find((s) =>
     s.name.toLowerCase().includes("union sq")
   );
@@ -315,6 +363,7 @@ async function main() {
     console.log(
       `\n  Validation — ${unionSq.name} (${unionSq.id}): routes [${uqRoutes.join(", ")}]`
     );
+    console.log(`    Child stop IDs: [${unionSq.childStopIds.join(", ")}]`);
   }
 }
 

@@ -1,10 +1,10 @@
-import Link from "next/link";
-import { getRoutes, getStations } from "@/lib/gtfs";
+import { getRoutes, getStationRoutes, getStations } from "@/lib/gtfs";
 import { HomeSearch } from "@/components/home-search";
 
 export default function Home() {
   const stations = getStations();
   const routes = getRoutes();
+  const stationRoutes = getStationRoutes();
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-12">
@@ -14,17 +14,12 @@ export default function Home() {
       </p>
 
       <div className="mt-6">
-        <HomeSearch stations={stations} routes={routes} />
+        <HomeSearch
+          stations={stations}
+          routes={routes}
+          stationRoutes={stationRoutes}
+        />
       </div>
-
-      <nav className="mt-8 flex gap-6">
-        <Link href="/stops" className="text-sm font-medium">
-          All Stops →
-        </Link>
-        <Link href="/lines" className="text-sm font-medium">
-          All Lines →
-        </Link>
-      </nav>
     </main>
   );
 }

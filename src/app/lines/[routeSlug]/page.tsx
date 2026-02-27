@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   getRouteBySlug,
@@ -61,13 +60,13 @@ export default async function RoutePage({ params }: Props) {
         <ul className="divide-y divide-border">
           {stations.map((station) => (
             <li key={station.id} className="py-2">
-              <Link
+              <a
                 href={`/stops/${station.slug}/lines/${route.slug}`}
                 className="flex items-center justify-between no-underline hover:opacity-70"
               >
                 <span className="text-sm">{station.name}</span>
                 <span className="text-xs text-muted">Status →</span>
-              </Link>
+              </a>
             </li>
           ))}
         </ul>

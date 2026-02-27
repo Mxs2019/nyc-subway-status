@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 interface PageHeaderProps {
   title: string;
   backHref?: string;
@@ -17,9 +15,9 @@ export function PageHeader({
     <header className="mb-8">
       <div className="flex items-center gap-3 mb-1">
         {backHref && (
-          <Link href={backHref} className="text-muted text-xs no-underline">
+          <a href={backHref} className="text-muted text-xs no-underline">
             ← {backLabel || "Back"}
-          </Link>
+          </a>
         )}
       </div>
       <div className="flex items-center gap-3">

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import type { Route } from "@/lib/gtfs";
 import { RouteBullet } from "./route-bullet";
 import { SearchFilter } from "./search-filter";
@@ -23,7 +22,7 @@ export function RouteList({ routes }: RouteListProps) {
         <ul className="divide-y divide-border">
           {filtered.map((route) => (
             <li key={route.id} className="py-2">
-              <Link
+              <a
                 href={`/lines/${route.slug}`}
                 className="flex items-center gap-3 no-underline hover:opacity-70"
               >
@@ -33,7 +32,7 @@ export function RouteList({ routes }: RouteListProps) {
                   textColor={route.textColor}
                 />
                 <span className="text-sm">{route.longName}</span>
-              </Link>
+              </a>
             </li>
           ))}
           {filtered.length === 0 && (
