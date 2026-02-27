@@ -18,18 +18,20 @@ Next.js 15 changed fetch caching defaults from 14: fetches are **no longer cache
 |-------|-------------|-------------------|
 | **Data Cache** (server, persistent) | Caches fetch results across requests | `cache: 'no-store'` on every fetch + `fetchCache = 'force-no-store'` on page |
 | **Full Route Cache** (server) | Caches rendered HTML for static routes | `dynamic = 'force-dynamic'` + `revalidate = 0` on realtime pages |
-| **Router Cache** (client, in-memory) | Caches RSC payload during client navigation | `staleTimes: { dynamic: 0, static: 0 }` in next.config.ts |
-| **HMR Cache** (dev only) | Caches server component data between hot reloads | `serverComponentsHmrCache: false` in next.config.ts |
+| **Router Cache** (client, in-memory) | Caches RSC payload during client navigation | **Eliminated entirely** — we use `<a>` tags, not `next/link` |
+| **HMR Cache** (dev only) | Caches server component data between hot reloads | Cleared by deleting `.next` dir; config option removed in Next.js 16 |
 
-**Our policy: zero caching on realtime data.** Every page load hits the MTA feed fresh.
+**Our policy: zero caching on realtime data.** Every click is a full page load. We do NOT use `next/link` anywhere — all navigation is plain `<a>` tags, which completely bypasses the client Router Cache.
 
 ## Data Pipeline
 
 ### Build-time (GTFS Static)
 - `scripts/build-gtfs.ts` downloads and parses MTA supplemented GTFS zip
 - Generates JSON files in `src/data/gtfs/` (gitignored, rebuilt each deploy via `prebuild` script)
-- Output: `stations.json` (496 stations), `routes.json` (29 routes), `stationRoutes.json`, `routeStations.json`, `meta.json`
-- Stations grouped by `parent_station` from GTFS; duplicate slugs get station ID suffix
+- Output: `stations.json` (445 stations), `routes.json` (29 routes), `stationRoutes.json`, `routeStations.json`, `meta.json`
+- Stations grouped by `parent_station` from GTFS, then **merged by MTA complex ID**
+- Complex groupings hardcoded in `src/data/station-complexes.ts` (35 complexes, sourced from data.ny.gov)
+- Example: Union Square merges 635 (4/5/6), L03 (L), R20 (N/Q/R/W) into one station with all child stop IDs
 
 ### Request-time (GTFS-RT)
 - `src/lib/gtfsrt.ts` fetches and decodes protobuf TripUpdates feeds
@@ -59,11 +61,12 @@ Next.js 15 changed fetch caching defaults from 14: fetches are **no longer cache
 
 - `scripts/build-gtfs.ts` — GTFS static ingestion (runs via `npm run prebuild`)
 - `src/data/gtfs/` — Generated JSON data (gitignored)
+- `src/data/station-complexes.ts` — Hardcoded MTA complex groupings (35 multi-station complexes)
 - `src/lib/gtfsrt.ts` — GTFS-RT protobuf fetch + decode (8 MTA feed endpoints)
 - `src/lib/gtfs.ts` — Typed helpers to load generated static JSON data (cached in memory)
 - `src/lib/slugs.ts` — Station/route slug generation
+- `src/hooks/use-now.ts` — Shared 10-second timer hook for relative time display
 - `src/app/sitemap.ts` — Dynamic sitemap from generated data
-- `next.config.ts` — Caching disabled: serverComponentsHmrCache, staleTimes
 
 ## Components
 
@@ -77,11 +80,12 @@ Next.js 15 changed fetch caching defaults from 14: fetches are **no longer cache
 ## Conventions
 
 - Server Components by default; `"use client"` only for search/time display
-- No hardcoded station/route data — everything derived from GTFS feed
+- No hardcoded station/route data — everything derived from GTFS feed (except complex groupings)
 - Route colors from GTFS `route_color`/`route_text_color` (prefixed with #)
 - Monochrome typography; color only for route bullets and accent borders
-- Slugs: lowercase, hyphenated (e.g., `14-st-union-sq-635`, `a`)
-- Station complexes with same name get ID suffix in slug (e.g., `-635`, `-l03`, `-r20`)
+- Slugs: lowercase, hyphenated (e.g., `14-st-union-sq`, `a`)
+- **No `next/link`** — all navigation uses plain `<a>` tags to avoid Router Cache
+- Home page uses tabbed view (Stops | Lines) with shared search filter
 
 ## Environment Variables
 
