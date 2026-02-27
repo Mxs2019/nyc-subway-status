@@ -1,23 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useNow } from "@/hooks/use-now";
 
 interface ArrivalTimeProps {
   timestamp: number; // Unix timestamp in seconds
 }
 
 export function ArrivalTime({ timestamp }: ArrivalTimeProps) {
-  const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
+  const now = useNow();
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setNow(Math.floor(Date.now() / 1000));
-    }, 10_000); // Update every 10 seconds
-    return () => clearInterval(interval);
-  }, []);
-
-  const diffSeconds = timestamp - now;
-  const diffMinutes = Math.round(diffSeconds / 60);
+  const diffMinutes = Math.round((timestamp - now) / 60);
 
   const absoluteTime = new Date(timestamp * 1000).toLocaleTimeString("en-US", {
     hour: "numeric",
