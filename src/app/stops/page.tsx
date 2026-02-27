@@ -1,0 +1,31 @@
+import type { Metadata } from "next";
+import { getRoutes, getStationRoutes, getStations } from "@/lib/gtfs";
+import { PageHeader } from "@/components/page-header";
+import { StationList } from "@/components/station-list";
+
+export const metadata: Metadata = {
+  title: "All Stops",
+  description: "Browse all NYC subway stations with real-time arrival information.",
+};
+
+export default function StopsPage() {
+  const stations = getStations();
+  const stationRoutes = getStationRoutes();
+  const routes = getRoutes();
+
+  return (
+    <main className="max-w-2xl mx-auto px-4 py-8">
+      <PageHeader
+        title="All Stops"
+        backHref="/"
+        backLabel="Home"
+      />
+      <p className="text-muted text-xs mb-4">{stations.length} stations</p>
+      <StationList
+        stations={stations}
+        stationRoutes={stationRoutes}
+        routes={routes}
+      />
+    </main>
+  );
+}

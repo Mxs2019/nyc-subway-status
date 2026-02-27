@@ -1,0 +1,143 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import {
+  getStationBySlug,
+  getStations,
+  getRouteBySlug,
+  getRoutes,
+  getStationRoutes,
+} from "@/lib/gtfs";
+import { getArrivals } from "@/lib/gtfsrt";
+import { PageHeader } from "@/components/page-header";
+import { RouteBullet } from "@/components/route-bullet";
+import { ArrivalTime } from "@/components/arrival-time";
+
+export const dynamic = "force-dynamic";
+
+interface Props {
+  params: Promise<{ stationSlug: string; routeSlug: string }>;
+}
+
+export async function generateStaticParams() {
+  const stations = getStations();
+  const routes = getRoutes();
+  const stationRoutes = getStationRoutes();
+
+  const params: { stationSlug: string; routeSlug: string }[] = [];
+
+  for (const station of stations) {
+    const routeIds = stationRoutes[station.id] || [];
+    for (const routeId of routeIds) {
+      const route = routes.find((r) => r.id === routeId);
+      if (route) {
+        params.push({
+          stationSlug: station.slug,
+          routeSlug: route.slug,
+        });
+      }
+    }
+  }
+
+  return params;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { stationSlug, routeSlug } = await params;
+  const station = getStationBySlug(stationSlug);
+  const route = getRouteBySlug(routeSlug);
+  if (!station || !route) return {};
+  return {
+    title: `${station.name} — ${route.shortName} Train`,
+    description: `Real-time ${route.shortName} train arrivals at ${station.name}.`,
+  };
+}
+
+export default async function StationRoutePage({ params }: Props) {
+  const { stationSlug, routeSlug } = await params;
+  const station = getStationBySlug(stationSlug);
+  const route = getRouteBySlug(routeSlug);
+
+  if (!station || !route) notFound();
+
+  // Verify this route serves this station
+  const stationRoutes = getStationRoutes();
+  const routeIds = stationRoutes[station.id] || [];
+  if (!routeIds.includes(route.id)) notFound();
+
+  let directionArrivals: Awaited<ReturnType<typeof getArrivals>>;
+  let error: string | null = null;
+
+  try {
+    directionArrivals = await getArrivals(station.childStopIds, route.id);
+  } catch (err) {
+    console.error("Failed to fetch realtime data:", err);
+    error = "Unable to load realtime data. Please try again.";
+    directionArrivals = [];
+  }
+
+  return (
+    <main className="max-w-2xl mx-auto px-4 py-8">
+      <PageHeader
+        title={station.name}
+        backHref={`/stops/${station.slug}`}
+        backLabel={station.name}
+      >
+        <RouteBullet
+          shortName={route.shortName}
+          color={route.color}
+          textColor={route.textColor}
+          size="lg"
+        />
+      </PageHeader>
+
+      <div
+        className="border-l-4 pl-4 mb-6"
+        style={{ borderColor: route.color }}
+      >
+        <p className="text-sm font-medium">{route.longName}</p>
+      </div>
+
+      {error && (
+        <div className="border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 mb-6">
+          {error}
+        </div>
+      )}
+
+      {directionArrivals.length === 0 && !error && (
+        <p className="text-muted text-sm">
+          No upcoming arrivals found.
+        </p>
+      )}
+
+      <div className="space-y-6">
+        {directionArrivals.map((da) => (
+          <section key={da.directionId}>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted mb-3">
+              Direction {da.directionId}
+            </h2>
+            <ul className="divide-y divide-border">
+              {da.arrivals.map((arrival, i) => (
+                <li key={`${arrival.tripId}-${i}`} className="py-2 flex items-center gap-3">
+                  <RouteBullet
+                    shortName={route.shortName}
+                    color={route.color}
+                    textColor={route.textColor}
+                    size="sm"
+                  />
+                  <ArrivalTime timestamp={arrival.arrivalTime} />
+                </li>
+              ))}
+            </ul>
+            {da.arrivals.length === 0 && (
+              <p className="text-muted text-xs">No trains in this direction.</p>
+            )}
+          </section>
+        ))}
+      </div>
+
+      <footer className="mt-8 pt-4 border-t border-border text-xs text-muted">
+        <p>Data from MTA GTFS-RT. Refresh page for latest times.</p>
+      </footer>
+    </main>
+  );
+}
