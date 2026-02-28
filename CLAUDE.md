@@ -110,3 +110,53 @@ https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-l        (L)
 https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-nqrw     (N,Q,R,W)
 https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-si       (SI)
 ```
+
+
+<!-- issues-md: Task Tracking System -->
+## Task Tracking System
+
+Queue-based issue tracking: plan work with `/plan-issues`, execute with `/complete-next-issue`.
+
+### Default Workflow
+
+**IMPORTANT:** ALWAYS use the skills-based workflow by default:
+1. When the user asks you to build, change, or fix something: use `/plan-issues` to create an issue first.
+2. When the user asks you to implement or work through the queue: use `/complete-next-issue`.
+
+Only skip issue creation and work directly if the user **explicitly** tells you to (e.g., "just do this directly", "don't create an issue", "skip the issue").
+
+### Skills (Primary Interface)
+
+#### `/plan-issues` - Plan new issues
+Describe what you want to build and the agent will research, ask questions, write plan files, and update the queue. Supports dependencies between issues.
+
+#### `/complete-next-issue` - Execute the next issue
+Implements the next unblocked issue: reads the plan, writes code, runs tests, commits, and updates the queue.
+
+### Structure
+```
+tasks/
+├── issues/                    # Plan files (001-feature-name.md)
+├── issues-to-complete.json    # Pending issues queue
+└── completed-issues.json      # Completed issues log
+```
+
+### CLI Commands (Manual Use)
+```bash
+issues list [--status <status>] [--json]   # List issues
+issues new --name <slug> [--blocked-by <id>]  # Create issue
+issues <id> started|complete|reset         # Change status
+issues monitor                             # Launch TUI
+```
+
+### JSON Format
+```json
+{
+  "next_id": 3,
+  "issues": [
+    { "id": "001", "name": "feature-name", "blocked_by": null, "status": "pending", "created_at": "2025-01-01T00:00:00.000Z" },
+    { "id": "002", "name": "another-feature", "blocked_by": "001", "status": "pending", "created_at": "2025-01-01T00:00:00.000Z" }
+  ]
+}
+```
+<!-- /issues-md -->
