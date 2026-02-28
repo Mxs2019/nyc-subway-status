@@ -37,6 +37,9 @@ yarn-error.log*
 # generated GTFS data (rebuilt on deploy)
 /src/data/gtfs/
 
+# seo audit reports
+.unlighthouse/
+
 # vercel
 .vercel
 

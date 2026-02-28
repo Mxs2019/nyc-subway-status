@@ -47,6 +47,12 @@ export default async function RoutePage({ params }: Props) {
     console.error("Failed to fetch realtime data for route:", err);
   }
 
+  // Only show stations with upcoming arrivals
+  const activeStations = stations.filter((station) => {
+    const arrivals = nextArrivals.get(station.id);
+    return arrivals && (arrivals.uptown || arrivals.downtown);
+  });
+
   return (
     <main className="max-w-2xl mx-auto px-4 py-8">
       <PageHeader title={`${route.longName}`} backHref="/lines" backLabel="All Lines">
@@ -63,7 +69,7 @@ export default async function RoutePage({ params }: Props) {
         style={{ borderColor: route.color }}
       >
         <p className="text-xs text-muted">
-          {stations.length} stations
+          {activeStations.length} stations
         </p>
       </div>
 
@@ -72,8 +78,8 @@ export default async function RoutePage({ params }: Props) {
           Stations
         </h2>
         <ul className="divide-y divide-border">
-          {stations.map((station) => {
-            const arrivals = nextArrivals.get(station.id);
+          {activeStations.map((station) => {
+            const arrivals = nextArrivals.get(station.id)!;
             return (
               <li key={station.id} className="py-3">
                 <a
@@ -81,20 +87,18 @@ export default async function RoutePage({ params }: Props) {
                   className="flex items-center justify-between no-underline hover:opacity-70"
                 >
                   <span className="text-sm font-medium">{station.name}</span>
-                  {arrivals && (arrivals.uptown || arrivals.downtown) && (
-                    <div className="flex gap-6 text-xs text-muted">
-                      {arrivals.uptown && (
-                        <span>
-                          ↑ <ArrivalTime timestamp={arrivals.uptown.arrivalTime} />
-                        </span>
-                      )}
-                      {arrivals.downtown && (
-                        <span>
-                          ↓ <ArrivalTime timestamp={arrivals.downtown.arrivalTime} />
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex gap-6 text-xs text-muted">
+                    {arrivals.uptown && (
+                      <span>
+                        ↑ <ArrivalTime timestamp={arrivals.uptown.arrivalTime} />
+                      </span>
+                    )}
+                    {arrivals.downtown && (
+                      <span>
+                        ↓ <ArrivalTime timestamp={arrivals.downtown.arrivalTime} />
+                      </span>
+                    )}
+                  </div>
                 </a>
               </li>
             );
