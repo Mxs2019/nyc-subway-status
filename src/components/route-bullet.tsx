@@ -24,7 +24,7 @@ export function RouteBullet({
 }: RouteBulletProps) {
   return (
     <span
-      className={`${sizes[size]} inline-flex items-center justify-center rounded-full font-bold shrink-0`}
+      className={`${sizes[size]} inline-flex items-center justify-center rounded-full font-bold shrink-0 no-underline`}
       style={{ backgroundColor: color, color: textColor }}
     >
       {shortName}

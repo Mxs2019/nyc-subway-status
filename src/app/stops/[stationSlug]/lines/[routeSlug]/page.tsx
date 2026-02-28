@@ -116,7 +116,7 @@ export default async function StationRoutePage({ params }: Props) {
         {directionArrivals.map((da) => (
           <section key={da.directionId}>
             <h2 className="text-xs font-bold uppercase tracking-wider text-muted mb-3">
-              Direction {da.directionId}
+              {da.directionLabel}
             </h2>
             <ul className="divide-y divide-border">
               {da.arrivals.map((arrival, i) => (

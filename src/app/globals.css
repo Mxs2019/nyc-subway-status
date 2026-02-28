@@ -21,11 +21,13 @@ body {
   font-family: var(--font-mono), ui-monospace, monospace;
 }
 
-a {
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
+@layer base {
+  a {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
 
-a:hover {
-  opacity: 0.7;
+  a:hover {
+    opacity: 0.7;
+  }
 }

@@ -73,7 +73,34 @@ export interface Arrival {
 
 export interface DirectionArrivals {
   directionId: number;
+  directionLabel: string;
   arrivals: Arrival[];
+}
+
+function getDirectionIdFromStopId(stopId: string): number | null {
+  if (stopId.endsWith("N")) return 0;
+  if (stopId.endsWith("S")) return 1;
+  return null;
+}
+
+function getDirectionLabelFromArrivals(
+  arrivals: Arrival[],
+  fallbackDirectionId: number
+): string {
+  let northboundCount = 0;
+  let southboundCount = 0;
+
+  for (const arrival of arrivals) {
+    const directionId = getDirectionIdFromStopId(arrival.stopId);
+    if (directionId === 0) northboundCount++;
+    if (directionId === 1) southboundCount++;
+  }
+
+  if (northboundCount > southboundCount) return "Northbound";
+  if (southboundCount > northboundCount) return "Southbound";
+  if (northboundCount > 0) return "Northbound";
+  if (southboundCount > 0) return "Southbound";
+  return `Direction ${fallbackDirectionId}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -170,11 +197,12 @@ export async function getArrivals(
       // Only include future arrivals
       if (timestamp <= now) continue;
 
-      // Infer direction from stop_id suffix if directionId is 0
+      // Prefer stop_id suffix for direction at this station when present.
+      // MTA stop IDs are platform-specific and end with N/S.
       let dir = directionId;
-      if (dir === 0 && stopId) {
-        if (stopId.endsWith("N")) dir = 0;
-        else if (stopId.endsWith("S")) dir = 1;
+      const stopDirection = getDirectionIdFromStopId(stopId);
+      if (stopDirection !== null) {
+        dir = stopDirection;
       }
 
       arrivals.push({
@@ -201,6 +229,7 @@ export async function getArrivals(
     dirArrivals.sort((a, b) => a.arrivalTime - b.arrivalTime);
     result.push({
       directionId,
+      directionLabel: getDirectionLabelFromArrivals(dirArrivals, directionId),
       arrivals: dirArrivals.slice(0, maxArrivals),
     });
   }
@@ -217,7 +246,8 @@ export async function getArrivals(
 export async function getAllArrivalsForStation(
   childStopIds: string[],
   routeIds: string[],
-  maxArrivals: number = 5
+  maxArrivals: number = 5,
+  maxMinutesAhead?: number
 ): Promise<Map<string, DirectionArrivals[]>> {
   // Group routes by feed to minimize fetches
   const feedRoutes = new Map<string, string[]>();
@@ -230,6 +260,7 @@ export async function getAllArrivalsForStation(
 
   const stopIdSet = new Set(childStopIds);
   const now = Math.floor(Date.now() / 1000);
+  const maxTimestamp = maxMinutesAhead ? now + maxMinutesAhead * 60 : null;
   const routeArrivals = new Map<string, Arrival[]>();
 
   // Fetch each feed in parallel
@@ -275,6 +306,7 @@ export async function getAllArrivalsForStation(
             : Number(time);
 
         if (timestamp <= now) continue;
+        if (maxTimestamp !== null && timestamp > maxTimestamp) continue;
 
         let directionId = 0;
         if (stopId.endsWith("S")) directionId = 1;
@@ -305,7 +337,11 @@ export async function getAllArrivalsForStation(
     const dirs: DirectionArrivals[] = [];
     for (const [dir, dirArrivals] of byDir) {
       dirArrivals.sort((a, b) => a.arrivalTime - b.arrivalTime);
-      dirs.push({ directionId: dir, arrivals: dirArrivals.slice(0, maxArrivals) });
+      dirs.push({
+        directionId: dir,
+        directionLabel: getDirectionLabelFromArrivals(dirArrivals, dir),
+        arrivals: dirArrivals.slice(0, maxArrivals),
+      });
     }
     dirs.sort((a, b) => a.directionId - b.directionId);
     result.set(routeId, dirs);

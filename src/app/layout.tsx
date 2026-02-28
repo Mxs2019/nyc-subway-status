@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
+import { DevTools } from "@/components/dev-tools";
 import "./globals.css";
 
 const mono = Geist_Mono({
@@ -33,7 +34,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${mono.variable} antialiased`}>{children}</body>
+      <body className={`${mono.variable} antialiased`}>
+        {children}
+        <DevTools />
+      </body>
     </html>
   );
 }
