@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Route, Station } from "@/lib/gtfs";
 import { RouteBullet } from "./route-bullet";
 import { useFuzzySearch } from "@/hooks/use-fuzzy-search";
+import { getRecentPages, type RecentPage } from "@/hooks/use-recent-pages";
 
 interface HomeSearchProps {
   stations: Station[];
@@ -26,8 +27,15 @@ export function hasExactRouteMatch(
 
 export function HomeSearch({ stations, routes, stationRoutes }: HomeSearchProps) {
   const [query, setQuery] = useState("");
+  const [recents, setRecents] = useState<RecentPage[]>([]);
+
+  useEffect(() => {
+    setRecents(getRecentPages());
+  }, []);
 
   const routeMap = new Map(routes.map((r) => [r.id, r]));
+  const stationBySlug = new Map(stations.map((s) => [s.slug, s]));
+  const routeBySlug = new Map(routes.map((r) => [r.slug, r]));
 
   const { items: matchedStations, topScore: stationsScore } = useFuzzySearch(stations, STATION_FIELDS, query);
   const { items: matchedRoutes, topScore: routesScore } = useFuzzySearch(routes, ROUTE_FIELDS, query);
@@ -118,6 +126,90 @@ export function HomeSearch({ stations, routes, stationRoutes }: HomeSearchProps)
           ) : (
             <p className="text-muted text-sm">No results found.</p>
           )}
+        </div>
+      )}
+
+      {!hasQuery && recents.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted mb-2">Recents</h3>
+          <ul className="divide-y divide-border">
+            {recents.map((recent) => {
+              if (recent.type === "stop") {
+                const station = recent.stationSlug ? stationBySlug.get(recent.stationSlug) : undefined;
+                if (!station) return null;
+                const routeIds = stationRoutes[station.id] || [];
+                return (
+                  <li key={`stop-${recent.stationSlug}`} className="py-2">
+                    <a
+                      href={`/stops/${station.slug}`}
+                      className="flex items-center justify-between gap-2 no-underline hover:opacity-70"
+                    >
+                      <span className="text-sm">{station.name}</span>
+                      <span className="flex gap-1 shrink-0 flex-wrap justify-end">
+                        {routeIds.map((rid) => {
+                          const r = routeMap.get(rid);
+                          if (!r) return null;
+                          return (
+                            <RouteBullet
+                              key={rid}
+                              shortName={r.shortName}
+                              color={r.color}
+                              textColor={r.textColor}
+                              size="sm"
+                            />
+                          );
+                        })}
+                      </span>
+                    </a>
+                  </li>
+                );
+              }
+
+              if (recent.type === "line") {
+                const route = recent.routeSlug ? routeBySlug.get(recent.routeSlug) : undefined;
+                if (!route) return null;
+                return (
+                  <li key={`line-${recent.routeSlug}`} className="py-2">
+                    <a
+                      href={`/lines/${route.slug}`}
+                      className="flex items-center gap-3 no-underline hover:opacity-70"
+                    >
+                      <RouteBullet
+                        shortName={route.shortName}
+                        color={route.color}
+                        textColor={route.textColor}
+                      />
+                      <span className="text-sm">{route.longName}</span>
+                    </a>
+                  </li>
+                );
+              }
+
+              if (recent.type === "arrival") {
+                const station = recent.stationSlug ? stationBySlug.get(recent.stationSlug) : undefined;
+                const route = recent.routeSlug ? routeBySlug.get(recent.routeSlug) : undefined;
+                if (!station || !route) return null;
+                return (
+                  <li key={`arrival-${recent.stationSlug}-${recent.routeSlug}`} className="py-2">
+                    <a
+                      href={`/stops/${station.slug}/lines/${route.slug}`}
+                      className="flex items-center gap-3 no-underline hover:opacity-70"
+                    >
+                      <RouteBullet
+                        shortName={route.shortName}
+                        color={route.color}
+                        textColor={route.textColor}
+                        size="sm"
+                      />
+                      <span className="text-sm">{station.name}</span>
+                    </a>
+                  </li>
+                );
+              }
+
+              return null;
+            })}
+          </ul>
         </div>
       )}
     </div>

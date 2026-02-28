@@ -41,6 +41,20 @@
         "attempts": 1,
         "result": "Sorted routeStations by GTFS stop_sequence instead of alphabetically. Added tripDirection map and routeStationSequence tracking during stop_times loop, using min stop_sequence from direction_id 0 trips for consistent ordering."
       }
+    },
+    {
+      "id": "003",
+      "name": "recent-pages",
+      "created_at": "2026-02-28T16:01:00Z",
+      "started_at": "2026-02-28T16:08:25Z",
+      "completed_at": "2026-02-28T16:10:40Z",
+      "plan_file": "tasks/issues/003-recent-pages.md",
+      "execution": {
+        "started_at": "2026-02-28T16:08:25Z",
+        "duration_ms": 0,
+        "attempts": 1,
+        "result": "Added recent pages tracking with localStorage. RecentTracker component records visits on station, line, and arrival pages. HomeSearch displays up to 10 recents when no search query is active."
+      }
     }
   ]
 }

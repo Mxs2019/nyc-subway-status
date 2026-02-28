@@ -1,12 +1,4 @@
 {
   "next_id": 5,
-  "issues": [
-    {
-      "id": "003",
-      "name": "recent-pages",
-      "blocked_by": null,
-      "status": "pending",
-      "created_at": "2026-02-28T16:01:00Z"
-    }
-  ]
+  "issues": []
 }

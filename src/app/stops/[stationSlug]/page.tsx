@@ -9,6 +9,7 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { RouteBullet } from "@/components/route-bullet";
 import { ArrivalTime } from "@/components/arrival-time";
+import { RecentTracker } from "@/components/recent-tracker";
 import { getAllArrivalsForStation } from "@/lib/gtfsrt";
 
 // No caching — every page load fetches fresh realtime data server-side
@@ -83,6 +84,7 @@ export default async function StationPage({ params }: Props) {
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-8">
+      <RecentTracker type="stop" stationSlug={station.slug} />
       <PageHeader title={station.name} backHref="/stops" backLabel="All Stops" />
 
       <div className="flex flex-wrap items-center gap-2 mb-6">

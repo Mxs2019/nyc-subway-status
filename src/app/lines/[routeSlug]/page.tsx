@@ -9,6 +9,7 @@ import { getNextArrivalsForRoute } from "@/lib/gtfsrt";
 import { PageHeader } from "@/components/page-header";
 import { RouteBullet } from "@/components/route-bullet";
 import { ArrivalTime } from "@/components/arrival-time";
+import { RecentTracker } from "@/components/recent-tracker";
 
 // No caching — every page load fetches fresh realtime data server-side
 export const dynamic = "force-dynamic";
@@ -55,6 +56,7 @@ export default async function RoutePage({ params }: Props) {
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-8">
+      <RecentTracker type="line" routeSlug={route.slug} />
       <PageHeader title={`${route.longName}`} backHref="/lines" backLabel="All Lines">
         <RouteBullet
           shortName={route.shortName}
