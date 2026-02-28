@@ -15,6 +15,7 @@
   "dependencies": {
     "@vercel/analytics": "^1.6.1",
     "csv-parse": "^6.1.0",
+    "geist": "^1.7.0",
     "gtfs-realtime-bindings": "^1.1.1",
     "jszip": "^3.10.1",
     "minisearch": "^7.2.0",

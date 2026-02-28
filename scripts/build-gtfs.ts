@@ -511,6 +511,14 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("Build failed:", err);
-  process.exit(1);
+  // If GTFS data already exists, skip the fetch failure gracefully
+  const dataFiles = ["stations.json", "routes.json", "stationRoutes.json", "routeStations.json", "meta.json"];
+  const allExist = dataFiles.every((f) => fs.existsSync(path.join(OUT_DIR, f)));
+  if (allExist) {
+    console.warn("GTFS fetch failed but existing data found — skipping rebuild.");
+    console.warn("Error was:", err.message || err);
+  } else {
+    console.error("Build failed:", err);
+    process.exit(1);
+  }
 });
