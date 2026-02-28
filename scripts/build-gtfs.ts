@@ -235,21 +235,94 @@ async function main() {
     }
   }
 
-  // Deduplicate slugs (shouldn't be needed after complex merge, but safety)
-  const slugCounts = new Map<string, string[]>();
-  for (const station of stationsMap.values()) {
-    const existing = slugCounts.get(station.slug) || [];
-    existing.push(station.id);
-    slugCounts.set(station.slug, existing);
+  // -----------------------------------------------------------------------
+  // Proximity merge: merge same-name stations within 400m
+  // -----------------------------------------------------------------------
+
+  function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6_371_000; // Earth radius in meters
+    const p = Math.PI / 180;
+    const a =
+      0.5 -
+      Math.cos((lat2 - lat1) * p) / 2 +
+      Math.cos(lat1 * p) * Math.cos(lat2 * p) * (1 - Math.cos((lon2 - lon1) * p)) / 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
   }
-  for (const [slug, ids] of slugCounts) {
-    if (ids.length > 1) {
-      for (const id of ids) {
-        const station = stationsMap.get(id)!;
-        station.slug = `${slug}-${id.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+
+  const PROXIMITY_THRESHOLD = 400; // meters
+
+  // Group stations by name
+  const byName = new Map<string, string[]>();
+  for (const [id, station] of stationsMap) {
+    const ids = byName.get(station.name) || [];
+    ids.push(id);
+    byName.set(station.name, ids);
+  }
+
+  let proximityMergeCount = 0;
+
+  for (const [, ids] of byName) {
+    if (ids.length < 2) continue;
+
+    // Union-Find to cluster nearby stations
+    const parent = new Map<string, string>();
+    for (const id of ids) parent.set(id, id);
+
+    function find(x: string): string {
+      while (parent.get(x) !== x) {
+        parent.set(x, parent.get(parent.get(x)!)!);
+        x = parent.get(x)!;
+      }
+      return x;
+    }
+
+    function union(a: string, b: string) {
+      const ra = find(a), rb = find(b);
+      if (ra !== rb) parent.set(rb, ra);
+    }
+
+    // Union stations within threshold
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i + 1; j < ids.length; j++) {
+        const a = stationsMap.get(ids[i])!;
+        const b = stationsMap.get(ids[j])!;
+        if (haversine(a.lat, a.lon, b.lat, b.lon) < PROXIMITY_THRESHOLD) {
+          union(ids[i], ids[j]);
+        }
+      }
+    }
+
+    // Group by cluster root
+    const clusters = new Map<string, string[]>();
+    for (const id of ids) {
+      const root = find(id);
+      const group = clusters.get(root) || [];
+      group.push(id);
+      clusters.set(root, group);
+    }
+
+    // Merge each cluster
+    for (const [canonical, group] of clusters) {
+      if (group.length < 2) continue;
+      for (const id of group) {
+        if (id === canonical) continue;
+        // Merge into canonical
+        const source = stationsMap.get(id)!;
+        const target = stationsMap.get(canonical)!;
+        target.childStopIds.push(...source.childStopIds);
+        stationsMap.delete(id);
+        // Update childToParent references
+        for (const [childId, parentId] of childToParent) {
+          if (parentId === id) {
+            childToParent.set(childId, canonical);
+          }
+        }
+        proximityMergeCount++;
       }
     }
   }
+
+  console.log(`  Proximity-merged ${proximityMergeCount} additional stations`);
 
   // -----------------------------------------------------------------------
   // Build routes
