@@ -11,19 +11,84 @@ interface HomeSearchProps {
   stationRoutes: Record<string, string[]>;
 }
 
-type Tab = "stops" | "lines";
-
 const STATION_FIELDS = ["name"];
 const ROUTE_FIELDS = ["shortName", "longName"];
+const MAX_RESULTS = 5;
 
 export function HomeSearch({ stations, routes, stationRoutes }: HomeSearchProps) {
-  const [tab, setTab] = useState<Tab>("stops");
   const [query, setQuery] = useState("");
 
   const routeMap = new Map(routes.map((r) => [r.id, r]));
 
-  const filteredStations = useFuzzySearch(stations, STATION_FIELDS, query);
-  const filteredRoutes = useFuzzySearch(routes, ROUTE_FIELDS, query);
+  const { items: matchedStations, topScore: stationsScore } = useFuzzySearch(stations, STATION_FIELDS, query);
+  const { items: matchedRoutes, topScore: routesScore } = useFuzzySearch(routes, ROUTE_FIELDS, query);
+
+  const hasQuery = query.trim().length > 0;
+  const hasResults = matchedStations.length > 0 || matchedRoutes.length > 0;
+
+  const stopsSection = (
+    <div key="stops">
+      <h3 className="text-xs font-bold uppercase tracking-wider text-muted mb-2">Stops</h3>
+      <ul className="divide-y divide-border">
+        {matchedStations.slice(0, MAX_RESULTS).map((station) => {
+          const routeIds = stationRoutes[station.id] || [];
+          return (
+            <li key={station.id} className="py-2">
+              <a
+                href={`/stops/${station.slug}`}
+                className="flex items-center justify-between gap-2 no-underline hover:opacity-70"
+              >
+                <span className="text-sm">{station.name}</span>
+                <span className="flex gap-1 shrink-0 flex-wrap justify-end">
+                  {routeIds.map((rid) => {
+                    const r = routeMap.get(rid);
+                    if (!r) return null;
+                    return (
+                      <RouteBullet
+                        key={rid}
+                        shortName={r.shortName}
+                        color={r.color}
+                        textColor={r.textColor}
+                        size="sm"
+                      />
+                    );
+                  })}
+                </span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+
+  const linesSection = (
+    <div key="lines">
+      <h3 className="text-xs font-bold uppercase tracking-wider text-muted mb-2">Lines</h3>
+      <ul className="divide-y divide-border">
+        {matchedRoutes.slice(0, MAX_RESULTS).map((route) => (
+          <li key={route.id} className="py-2">
+            <a
+              href={`/lines/${route.slug}`}
+              className="flex items-center gap-3 no-underline hover:opacity-70"
+            >
+              <RouteBullet
+                shortName={route.shortName}
+                color={route.color}
+                textColor={route.textColor}
+              />
+              <span className="text-sm">{route.longName}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
+  const sections: { score: number; element: React.ReactNode }[] = [];
+  if (matchedStations.length > 0) sections.push({ score: stationsScore, element: stopsSection });
+  if (matchedRoutes.length > 0) sections.push({ score: routesScore, element: linesSection });
+  sections.sort((a, b) => b.score - a.score);
 
   return (
     <div>
@@ -31,93 +96,19 @@ export function HomeSearch({ stations, routes, stationRoutes }: HomeSearchProps)
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder={tab === "stops" ? "Filter stations..." : "Filter lines..."}
+        placeholder="Search stops and lines..."
         className="w-full border border-border px-3 py-2 text-sm bg-white focus:outline-none focus:border-foreground"
       />
 
-      <div className="flex gap-0 mt-4 border-b border-border">
-        <button
-          onClick={() => setTab("stops")}
-          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider -mb-px ${
-            tab === "stops"
-              ? "border-b-2 border-foreground text-foreground"
-              : "text-muted hover:text-foreground"
-          }`}
-        >
-          Stops ({filteredStations.length})
-        </button>
-        <button
-          onClick={() => setTab("lines")}
-          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider -mb-px ${
-            tab === "lines"
-              ? "border-b-2 border-foreground text-foreground"
-              : "text-muted hover:text-foreground"
-          }`}
-        >
-          Lines ({filteredRoutes.length})
-        </button>
-      </div>
-
-      <div className="mt-2">
-        {tab === "stops" && (
-          <ul className="divide-y divide-border">
-            {filteredStations.map((station) => {
-              const routeIds = stationRoutes[station.id] || [];
-              return (
-                <li key={station.id} className="py-2">
-                  <a
-                    href={`/stops/${station.slug}`}
-                    className="flex items-center justify-between gap-2 no-underline hover:opacity-70"
-                  >
-                    <span className="text-sm">{station.name}</span>
-                    <span className="flex gap-1 shrink-0 flex-wrap justify-end">
-                      {routeIds.map((rid) => {
-                        const r = routeMap.get(rid);
-                        if (!r) return null;
-                        return (
-                          <RouteBullet
-                            key={rid}
-                            shortName={r.shortName}
-                            color={r.color}
-                            textColor={r.textColor}
-                            size="sm"
-                          />
-                        );
-                      })}
-                    </span>
-                  </a>
-                </li>
-              );
-            })}
-            {filteredStations.length === 0 && (
-              <li className="py-4 text-muted text-sm">No stations found.</li>
-            )}
-          </ul>
-        )}
-
-        {tab === "lines" && (
-          <ul className="divide-y divide-border">
-            {filteredRoutes.map((route) => (
-              <li key={route.id} className="py-2">
-                <a
-                  href={`/lines/${route.slug}`}
-                  className="flex items-center gap-3 no-underline hover:opacity-70"
-                >
-                  <RouteBullet
-                    shortName={route.shortName}
-                    color={route.color}
-                    textColor={route.textColor}
-                  />
-                  <span className="text-sm">{route.longName}</span>
-                </a>
-              </li>
-            ))}
-            {filteredRoutes.length === 0 && (
-              <li className="py-4 text-muted text-sm">No lines found.</li>
-            )}
-          </ul>
-        )}
-      </div>
+      {hasQuery && (
+        <div className="mt-4 space-y-4">
+          {hasResults ? (
+            sections.map((s) => s.element)
+          ) : (
+            <p className="text-muted text-sm">No results found.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

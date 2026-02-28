@@ -20,7 +20,7 @@ export function SearchFilter<T extends object>({
 }: SearchFilterProps<T>) {
   const [query, setQuery] = useState("");
 
-  const filtered = useFuzzySearch(items, fields, query, idField);
+  const { items: filtered } = useFuzzySearch(items, fields, query, idField);
 
   return (
     <div>

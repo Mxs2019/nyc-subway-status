@@ -23,12 +23,17 @@ function processTerm(term: string): string | false {
   return ABBREVIATIONS[lower] || lower;
 }
 
+export interface FuzzySearchResult<T> {
+  items: T[];
+  topScore: number;
+}
+
 export function useFuzzySearch<T extends object>(
   items: T[],
   fields: string[],
   query: string,
   idField: string = "id",
-): T[] {
+): FuzzySearchResult<T> {
   const fieldsKey = fields.join(",");
 
   const index = useMemo(() => {
@@ -48,15 +53,17 @@ export function useFuzzySearch<T extends object>(
   }, [items, fieldsKey, idField]);
 
   return useMemo(() => {
-    if (!query.trim()) return items;
+    if (!query.trim()) return { items, topScore: 0 };
 
     const results = index.search(query);
     const itemMap = new Map(
       items.map((item) => [(item as Record<string, unknown>)[idField], item]),
     );
 
-    return results
+    const filtered = results
       .map((r) => itemMap.get(r.id))
       .filter((item): item is T => item != null);
+
+    return { items: filtered, topScore: results[0]?.score ?? 0 };
   }, [query, index, items, idField]);
 }
