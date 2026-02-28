@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Route, Station } from "@/lib/gtfs";
 import { RouteBullet } from "./route-bullet";
+import { useFuzzySearch } from "@/hooks/use-fuzzy-search";
 
 interface HomeSearchProps {
   stations: Station[];
@@ -12,24 +13,17 @@ interface HomeSearchProps {
 
 type Tab = "stops" | "lines";
 
+const STATION_FIELDS = ["name"];
+const ROUTE_FIELDS = ["shortName", "longName"];
+
 export function HomeSearch({ stations, routes, stationRoutes }: HomeSearchProps) {
   const [tab, setTab] = useState<Tab>("stops");
   const [query, setQuery] = useState("");
-  const q = query.toLowerCase();
 
   const routeMap = new Map(routes.map((r) => [r.id, r]));
 
-  const filteredStations = q
-    ? stations.filter((s) => s.name.toLowerCase().includes(q))
-    : stations;
-
-  const filteredRoutes = q
-    ? routes.filter(
-        (r) =>
-          r.shortName.toLowerCase().includes(q) ||
-          r.longName.toLowerCase().includes(q)
-      )
-    : routes;
+  const filteredStations = useFuzzySearch(stations, STATION_FIELDS, query);
+  const filteredRoutes = useFuzzySearch(routes, ROUTE_FIELDS, query);
 
   return (
     <div>

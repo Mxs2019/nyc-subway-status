@@ -5,8 +5,15 @@ import {
   getRoutes,
   getStationsForRoute,
 } from "@/lib/gtfs";
+import { getNextArrivalsForRoute } from "@/lib/gtfsrt";
 import { PageHeader } from "@/components/page-header";
 import { RouteBullet } from "@/components/route-bullet";
+import { ArrivalTime } from "@/components/arrival-time";
+
+// No caching — every page load fetches fresh realtime data server-side
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 interface Props {
   params: Promise<{ routeSlug: string }>;
@@ -33,6 +40,13 @@ export default async function RoutePage({ params }: Props) {
 
   const stations = getStationsForRoute(route.id);
 
+  let nextArrivals: Awaited<ReturnType<typeof getNextArrivalsForRoute>> = new Map();
+  try {
+    nextArrivals = await getNextArrivalsForRoute(route.id, stations);
+  } catch (err) {
+    console.error("Failed to fetch realtime data for route:", err);
+  }
+
   return (
     <main className="max-w-2xl mx-auto px-4 py-8">
       <PageHeader title={`${route.longName}`} backHref="/lines" backLabel="All Lines">
@@ -58,17 +72,36 @@ export default async function RoutePage({ params }: Props) {
           Stations
         </h2>
         <ul className="divide-y divide-border">
-          {stations.map((station) => (
-            <li key={station.id} className="py-2">
-              <a
-                href={`/stops/${station.slug}/lines/${route.slug}`}
-                className="flex items-center justify-between no-underline hover:opacity-70"
-              >
-                <span className="text-sm">{station.name}</span>
-                <span className="text-xs text-muted">Status →</span>
-              </a>
-            </li>
-          ))}
+          {stations.map((station) => {
+            const arrivals = nextArrivals.get(station.id);
+            return (
+              <li key={station.id} className="py-3">
+                <a
+                  href={`/stops/${station.slug}/lines/${route.slug}`}
+                  className="block no-underline hover:opacity-70"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">{station.name}</span>
+                    <span className="text-xs text-muted">Details →</span>
+                  </div>
+                  {arrivals && (arrivals.uptown || arrivals.downtown) && (
+                    <div className="flex gap-4 mt-1 text-xs text-muted">
+                      {arrivals.uptown && (
+                        <span>
+                          ↑ <ArrivalTime timestamp={arrivals.uptown.arrivalTime} />
+                        </span>
+                      )}
+                      {arrivals.downtown && (
+                        <span>
+                          ↓ <ArrivalTime timestamp={arrivals.downtown.arrivalTime} />
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </a>
+              </li>
+            );
+          })}
         </ul>
       </section>
     </main>

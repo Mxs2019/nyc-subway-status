@@ -370,6 +370,59 @@ async function main() {
   }
 
   // -----------------------------------------------------------------------
+  // Disambiguate remaining same-name stations by appending route letters
+  // -----------------------------------------------------------------------
+
+  const nameGroups = new Map<string, string[]>();
+  for (const [id, station] of stationsMap) {
+    const ids = nameGroups.get(station.name) || [];
+    ids.push(id);
+    nameGroups.set(station.name, ids);
+  }
+
+  let disambiguatedCount = 0;
+
+  for (const [, ids] of nameGroups) {
+    if (ids.length < 2) continue;
+    for (const id of ids) {
+      const station = stationsMap.get(id)!;
+      const routeIds = stationRoutes.get(id);
+      if (routeIds && routeIds.size > 0) {
+        const letters = Array.from(routeIds)
+          .map((rid) => {
+            const r = routesList.find((rl) => rl.id === rid);
+            return r?.shortName || rid;
+          })
+          .sort()
+          .join("/");
+        station.name = `${station.name} (${letters})`;
+      }
+      station.slug = stationSlug(station.name);
+      disambiguatedCount++;
+    }
+  }
+
+  if (disambiguatedCount > 0) {
+    console.log(`  Disambiguated ${disambiguatedCount} same-name stations with route letters`);
+  }
+
+  // Deduplicate slugs (safety net)
+  const slugCounts = new Map<string, string[]>();
+  for (const station of stationsMap.values()) {
+    const existing = slugCounts.get(station.slug) || [];
+    existing.push(station.id);
+    slugCounts.set(station.slug, existing);
+  }
+  for (const [slug, ids] of slugCounts) {
+    if (ids.length > 1) {
+      for (const id of ids) {
+        const station = stationsMap.get(id)!;
+        station.slug = `${slug}-${id.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+      }
+    }
+  }
+
+  // -----------------------------------------------------------------------
   // Serialize outputs
   // -----------------------------------------------------------------------
 
@@ -400,6 +453,7 @@ async function main() {
     routeCount: routesList.length,
     stationRouteLinks: Object.keys(stationRoutesObj).length,
     complexesMerged: Object.keys(STATION_COMPLEXES).length,
+    proximityMerged: proximityMergeCount,
   };
 
   const writes = [
@@ -421,7 +475,7 @@ async function main() {
   // -----------------------------------------------------------------------
 
   console.log("\nBuild complete:");
-  console.log(`  Stations: ${stations.length} (after merging ${Object.keys(STATION_COMPLEXES).length} complexes)`);
+  console.log(`  Stations: ${stations.length} (${Object.keys(STATION_COMPLEXES).length} complexes + ${proximityMergeCount} proximity merges)`);
   console.log(`  Routes: ${routesList.length}`);
   console.log(
     `  Station↔Route links: ${Object.values(stationRoutesObj).reduce((s, v) => s + v.length, 0)}`

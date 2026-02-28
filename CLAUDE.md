@@ -77,6 +77,10 @@ Next.js 15 changed fetch caching defaults from 14: fetches are **no longer cache
 - `PageHeader` — Consistent page header with back navigation
 - `StationList` / `RouteList` — Filterable lists with route bullets
 
+## Workflow
+
+- **Do not run builds or type-checks.** Never run `tsc`, `npm run build`, `next build`, or similar compile/check commands unless explicitly asked.
+
 ## Conventions
 
 - Server Components by default; `"use client"` only for search/time display

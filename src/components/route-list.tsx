@@ -12,10 +12,7 @@ export function RouteList({ routes }: RouteListProps) {
   return (
     <SearchFilter
       items={routes}
-      filterFn={(route, query) =>
-        route.shortName.toLowerCase().includes(query) ||
-        route.longName.toLowerCase().includes(query)
-      }
+      fields={["shortName", "longName"]}
       placeholder="Filter lines..."
     >
       {(filtered) => (

@@ -241,6 +241,94 @@ export async function getArrivals(
 }
 
 /**
+ * Fetch the next arrival per direction for a single route across multiple stations.
+ * Fetches the feed once and extracts the soonest uptown/downtown arrival per station.
+ */
+export async function getNextArrivalsForRoute(
+  routeId: string,
+  stations: { id: string; childStopIds: string[] }[]
+): Promise<Map<string, { uptown: Arrival | null; downtown: Arrival | null }>> {
+  const feedUrl = getFeedUrl(routeId);
+  const feed = await fetchFeed(feedUrl);
+  const now = Math.floor(Date.now() / 1000);
+
+  // Map stopId → stationId for quick lookup
+  const stopToStation = new Map<string, string>();
+  for (const station of stations) {
+    for (const stopId of station.childStopIds) {
+      stopToStation.set(stopId, station.id);
+    }
+  }
+
+  const result = new Map<string, { uptown: Arrival | null; downtown: Arrival | null }>();
+  for (const station of stations) {
+    result.set(station.id, { uptown: null, downtown: null });
+  }
+
+  for (const entity of feed.entity) {
+    const tripUpdate = entity.tripUpdate;
+    if (!tripUpdate) continue;
+
+    const tripRouteId = tripUpdate.trip?.routeId;
+    if (!tripRouteId) continue;
+
+    const normalizedTripRoute = tripRouteId.replace(/X$/i, "");
+    const normalizedTarget = routeId.replace(/X$/i, "");
+    if (
+      tripRouteId !== routeId &&
+      normalizedTripRoute !== normalizedTarget &&
+      normalizedTripRoute !== routeId
+    )
+      continue;
+
+    for (const stu of tripUpdate.stopTimeUpdate || []) {
+      const stopId = stu.stopId;
+      if (!stopId) continue;
+
+      const stationId = stopToStation.get(stopId);
+      if (!stationId) continue;
+
+      const time = stu.arrival?.time || stu.departure?.time;
+      if (!time) continue;
+
+      const timestamp =
+        typeof time === "object" && "toNumber" in time
+          ? (time as { toNumber(): number }).toNumber()
+          : Number(time);
+
+      if (timestamp <= now) continue;
+
+      const directionId = stopId.endsWith("S") ? 1 : 0;
+      const entry = result.get(stationId)!;
+
+      if (directionId === 0) {
+        if (!entry.uptown || timestamp < entry.uptown.arrivalTime) {
+          entry.uptown = {
+            routeId: tripRouteId,
+            tripId: tripUpdate.trip?.tripId || "",
+            directionId,
+            stopId,
+            arrivalTime: timestamp,
+          };
+        }
+      } else {
+        if (!entry.downtown || timestamp < entry.downtown.arrivalTime) {
+          entry.downtown = {
+            routeId: tripRouteId,
+            tripId: tripUpdate.trip?.tripId || "",
+            directionId,
+            stopId,
+            arrivalTime: timestamp,
+          };
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
  * Fetch all arrivals for a station (all routes).
  */
 export async function getAllArrivalsForStation(

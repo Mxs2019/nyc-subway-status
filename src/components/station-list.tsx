@@ -20,9 +20,7 @@ export function StationList({
   return (
     <SearchFilter
       items={stations}
-      filterFn={(station, query) =>
-        station.name.toLowerCase().includes(query)
-      }
+      fields={["name"]}
       placeholder="Filter stations..."
     >
       {(filtered) => (

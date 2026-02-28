@@ -8,6 +8,8 @@ interface RouteBulletProps {
   color: string;
   textColor: string;
   size?: "sm" | "md" | "lg";
+  /** Add a white ring for stacked-avatar layouts */
+  ring?: boolean;
 }
 
 const sizes = {
@@ -21,10 +23,11 @@ export function RouteBullet({
   color,
   textColor,
   size = "md",
+  ring = false,
 }: RouteBulletProps) {
   return (
     <span
-      className={`${sizes[size]} inline-flex items-center justify-center rounded-full font-bold shrink-0 no-underline`}
+      className={`${sizes[size]} inline-flex items-center justify-center rounded-full font-bold shrink-0 no-underline ${ring ? "ring-2 ring-white" : ""}`}
       style={{ backgroundColor: color, color: textColor }}
     >
       {shortName}

@@ -1,25 +1,26 @@
 "use client";
 
 import { useState } from "react";
+import { useFuzzySearch } from "@/hooks/use-fuzzy-search";
 
-interface SearchFilterProps<T> {
+interface SearchFilterProps<T extends Record<string, unknown>> {
   items: T[];
-  filterFn: (item: T, query: string) => boolean;
+  fields: string[];
+  idField?: string;
   children: (filteredItems: T[]) => React.ReactNode;
   placeholder?: string;
 }
 
-export function SearchFilter<T>({
+export function SearchFilter<T extends Record<string, unknown>>({
   items,
-  filterFn,
+  fields,
+  idField = "id",
   children,
   placeholder = "Search...",
 }: SearchFilterProps<T>) {
   const [query, setQuery] = useState("");
 
-  const filtered = query
-    ? items.filter((item) => filterFn(item, query.toLowerCase()))
-    : items;
+  const filtered = useFuzzySearch(items, fields, query, idField);
 
   return (
     <div>
