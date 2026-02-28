@@ -15,6 +15,15 @@ const STATION_FIELDS = ["name"];
 const ROUTE_FIELDS = ["shortName", "longName"];
 const MAX_RESULTS = 5;
 
+export function hasExactRouteMatch(
+  query: string,
+  routes: { shortName: string }[]
+): boolean {
+  const trimmed = query.trim().toLowerCase();
+  if (!trimmed) return false;
+  return routes.some((r) => r.shortName.toLowerCase() === trimmed);
+}
+
 export function HomeSearch({ stations, routes, stationRoutes }: HomeSearchProps) {
   const [query, setQuery] = useState("");
 
@@ -85,9 +94,11 @@ export function HomeSearch({ stations, routes, stationRoutes }: HomeSearchProps)
     </div>
   );
 
+  const exactRouteMatch = hasExactRouteMatch(query, routes);
+
   const sections: { score: number; element: React.ReactNode }[] = [];
   if (matchedStations.length > 0) sections.push({ score: stationsScore, element: stopsSection });
-  if (matchedRoutes.length > 0) sections.push({ score: routesScore, element: linesSection });
+  if (matchedRoutes.length > 0) sections.push({ score: exactRouteMatch ? Infinity : routesScore, element: linesSection });
   sections.sort((a, b) => b.score - a.score);
 
   return (

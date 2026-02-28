@@ -13,6 +13,20 @@
         "attempts": 1,
         "result": "Replaced tabbed Stops/Lines search with universal search showing both sections simultaneously, ordered by MiniSearch relevance score. Modified useFuzzySearch hook to return { items, topScore }."
       }
+    },
+    {
+      "id": "002",
+      "name": "exact-route-match-priority",
+      "created_at": "2026-02-28T00:00:00.000Z",
+      "started_at": "2026-02-28T16:00:57Z",
+      "completed_at": "2026-02-28T16:03:32Z",
+      "plan_file": "tasks/issues/002-exact-route-match-priority.md",
+      "execution": {
+        "started_at": "2026-02-28T16:00:57Z",
+        "duration_ms": 0,
+        "attempts": 1,
+        "result": "Added exact route match boost in home-search.tsx: when query exactly matches a route shortName (case-insensitive), Lines section is boosted to appear above Stops. Extracted hasExactRouteMatch as a testable utility. Added vitest with 8 passing tests."
+      }
     }
   ]
 }

@@ -9,6 +9,7 @@
     "build:gtfs": "tsx scripts/build-gtfs.ts",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
     "seo": "tsx scripts/seo-audit.ts"
   },
   "dependencies": {
@@ -33,6 +34,7 @@
     "puppeteer": "^24.37.5",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.18"
   }
 }
