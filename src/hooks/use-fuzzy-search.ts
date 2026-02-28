@@ -23,7 +23,7 @@ function processTerm(term: string): string | false {
   return ABBREVIATIONS[lower] || lower;
 }
 
-export function useFuzzySearch<T extends Record<string, unknown>>(
+export function useFuzzySearch<T extends object>(
   items: T[],
   fields: string[],
   query: string,
@@ -52,7 +52,7 @@ export function useFuzzySearch<T extends Record<string, unknown>>(
 
     const results = index.search(query);
     const itemMap = new Map(
-      items.map((item) => [item[idField], item]),
+      items.map((item) => [(item as Record<string, unknown>)[idField], item]),
     );
 
     return results

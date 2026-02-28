@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useFuzzySearch } from "@/hooks/use-fuzzy-search";
 
-interface SearchFilterProps<T extends Record<string, unknown>> {
+interface SearchFilterProps<T extends object> {
   items: T[];
   fields: string[];
   idField?: string;
@@ -11,7 +11,7 @@ interface SearchFilterProps<T extends Record<string, unknown>> {
   placeholder?: string;
 }
 
-export function SearchFilter<T extends Record<string, unknown>>({
+export function SearchFilter<T extends object>({
   items,
   fields,
   idField = "id",

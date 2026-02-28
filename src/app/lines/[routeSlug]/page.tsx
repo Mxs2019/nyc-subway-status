@@ -78,14 +78,11 @@ export default async function RoutePage({ params }: Props) {
               <li key={station.id} className="py-3">
                 <a
                   href={`/stops/${station.slug}/lines/${route.slug}`}
-                  className="block no-underline hover:opacity-70"
+                  className="flex items-center justify-between no-underline hover:opacity-70"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{station.name}</span>
-                    <span className="text-xs text-muted">Details →</span>
-                  </div>
+                  <span className="text-sm font-medium">{station.name}</span>
                   {arrivals && (arrivals.uptown || arrivals.downtown) && (
-                    <div className="flex gap-4 mt-1 text-xs text-muted">
+                    <div className="flex gap-6 text-xs text-muted">
                       {arrivals.uptown && (
                         <span>
                           ↑ <ArrivalTime timestamp={arrivals.uptown.arrivalTime} />
@@ -104,6 +101,23 @@ export default async function RoutePage({ params }: Props) {
           })}
         </ul>
       </section>
+
+      <nav className="mt-8 pt-6 border-t border-border">
+        <div className="flex flex-col gap-2">
+          <a
+            href="/lines"
+            className="text-sm no-underline hover:opacity-70 transition"
+          >
+            All lines →
+          </a>
+          <a
+            href="/stops"
+            className="text-sm no-underline hover:opacity-70 transition"
+          >
+            All stations →
+          </a>
+        </div>
+      </nav>
     </main>
   );
 }

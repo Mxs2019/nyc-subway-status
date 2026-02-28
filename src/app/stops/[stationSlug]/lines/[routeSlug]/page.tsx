@@ -6,6 +6,7 @@ import {
   getRouteBySlug,
   getRoutes,
   getStationRoutes,
+  getRoutesForStation,
 } from "@/lib/gtfs";
 import { getArrivals } from "@/lib/gtfsrt";
 import { PageHeader } from "@/components/page-header";
@@ -138,7 +139,55 @@ export default async function StationRoutePage({ params }: Props) {
         ))}
       </div>
 
-      <footer className="mt-8 pt-4 border-t border-border text-xs text-muted">
+      {(() => {
+        const otherRoutes = getRoutesForStation(station.id).filter(
+          (r) => r.id !== route.id
+        );
+        return (
+          <nav className="mt-8 pt-6 border-t border-border space-y-4">
+            {otherRoutes.length > 0 && (
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                  Other lines at {station.name}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {otherRoutes.map((r) => (
+                    <a
+                      key={r.id}
+                      href={`/stops/${station.slug}/lines/${r.slug}`}
+                      className="no-underline hover:opacity-70 transition"
+                    >
+                      <RouteBullet
+                        shortName={r.shortName}
+                        color={r.color}
+                        textColor={r.textColor}
+                        size="md"
+                      />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2">
+              <a
+                href={`/stops/${station.slug}`}
+                className="text-sm no-underline hover:opacity-70 transition"
+              >
+                All lines at {station.name} →
+              </a>
+              <a
+                href={`/lines/${route.slug}`}
+                className="text-sm no-underline hover:opacity-70 transition"
+              >
+                {route.shortName} line — all stations →
+              </a>
+            </div>
+          </nav>
+        );
+      })()}
+
+      <footer className="mt-6 pt-4 border-t border-border text-xs text-muted">
         <p>Data from MTA GTFS-RT. Refresh page for latest times.</p>
       </footer>
     </main>

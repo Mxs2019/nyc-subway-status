@@ -166,6 +166,29 @@ export default async function StationPage({ params }: Props) {
           )}
         </section>
       </div>
+
+      <nav className="mt-8 pt-6 border-t border-border">
+        <p className="text-xs font-bold uppercase tracking-wider text-muted mb-2">
+          Explore Lines
+        </p>
+        <div className="flex flex-col gap-2">
+          {routes.map((route) => (
+            <a
+              key={route.id}
+              href={`/lines/${route.slug}`}
+              className="text-sm no-underline hover:opacity-70 transition flex items-center gap-2"
+            >
+              <RouteBullet
+                shortName={route.shortName}
+                color={route.color}
+                textColor={route.textColor}
+                size="sm"
+              />
+              {route.longName} — all stations →
+            </a>
+          ))}
+        </div>
+      </nav>
     </main>
   );
 }
