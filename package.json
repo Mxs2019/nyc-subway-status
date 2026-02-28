@@ -8,7 +8,8 @@
     "build": "next build",
     "build:gtfs": "tsx scripts/build-gtfs.ts",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seo": "tsx scripts/seo-audit.ts"
   },
   "dependencies": {
     "csv-parse": "^6.1.0",
@@ -24,9 +25,11 @@
     "@types/node": "^20.19.35",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@unlighthouse/cli": "^0.17.6",
     "agentation": "^2.2.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "puppeteer": "^24.37.5",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5"
