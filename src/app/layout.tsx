@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/next";
 import { DevTools } from "@/components/dev-tools";
 import "./globals.css";
 
-const mono = Geist_Mono({
+const mono = localFont({
+  src: "../../node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2",
   variable: "--font-mono",
-  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
