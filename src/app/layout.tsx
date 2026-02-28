@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { DevTools } from "@/components/dev-tools";
 import "./globals.css";
 
@@ -37,6 +38,7 @@ export default function RootLayout({
       <body className={`${mono.variable} antialiased`}>
         {children}
         <DevTools />
+        <Analytics />
       </body>
     </html>
   );

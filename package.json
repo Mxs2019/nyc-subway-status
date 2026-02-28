@@ -12,6 +12,7 @@
     "seo": "tsx scripts/seo-audit.ts"
   },
   "dependencies": {
+    "@vercel/analytics": "^1.6.1",
     "csv-parse": "^6.1.0",
     "gtfs-realtime-bindings": "^1.1.1",
     "jszip": "^3.10.1",
