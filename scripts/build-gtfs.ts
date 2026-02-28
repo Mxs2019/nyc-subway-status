@@ -344,14 +344,18 @@ async function main() {
   // -----------------------------------------------------------------------
 
   const tripRoute = new Map<string, string>();
+  const tripDirection = new Map<string, string>();
   for (const trip of trips) {
     tripRoute.set(trip.trip_id, trip.route_id);
+    tripDirection.set(trip.trip_id, trip.direction_id);
   }
 
   const validRouteIds = new Set(routesList.map((r) => r.id));
 
   const stationRoutes = new Map<string, Set<string>>();
   const routeStations = new Map<string, Set<string>>();
+  // Track min stop_sequence per (route, station) for direction_id "0" trips
+  const routeStationSequence = new Map<string, Map<string, number>>();
 
   for (const st of stopTimes) {
     const routeId = tripRoute.get(st.trip_id);
@@ -367,6 +371,17 @@ async function main() {
 
     if (!routeStations.has(routeId)) routeStations.set(routeId, new Set());
     routeStations.get(routeId)!.add(canonicalId);
+
+    // Collect stop_sequence for direction_id "0" trips only
+    if (tripDirection.get(st.trip_id) === "0") {
+      if (!routeStationSequence.has(routeId)) routeStationSequence.set(routeId, new Map());
+      const seqMap = routeStationSequence.get(routeId)!;
+      const seq = parseInt(st.stop_sequence, 10);
+      const current = seqMap.get(canonicalId);
+      if (current === undefined || seq < current) {
+        seqMap.set(canonicalId, seq);
+      }
+    }
   }
 
   // -----------------------------------------------------------------------
@@ -439,10 +454,11 @@ async function main() {
 
   const routeStationsObj: Record<string, string[]> = {};
   for (const [routeId, stationIds] of routeStations) {
+    const seqMap = routeStationSequence.get(routeId);
     routeStationsObj[routeId] = Array.from(stationIds).sort((a, b) => {
-      const sa = stationsMap.get(a);
-      const sb = stationsMap.get(b);
-      return (sa?.name || "").localeCompare(sb?.name || "");
+      const seqA = seqMap?.get(a) ?? Infinity;
+      const seqB = seqMap?.get(b) ?? Infinity;
+      return seqA - seqB;
     });
   }
 
