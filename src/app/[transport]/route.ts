@@ -11,6 +11,7 @@
  *   get_station_arrivals — Realtime arrivals for ALL routes at a station
  *   list_stations        — List all stations (optionally filtered by route)
  *   list_routes          — List all subway routes
+ *   get_trip             — Track a specific train by trip ID
  */
 
 import { createMcpHandler } from "mcp-handler";
@@ -24,10 +25,12 @@ import {
   getRoutesForStation,
   getStationsForRoute,
   getStationRoutes,
+  getStationByChildStopId,
 } from "@/lib/gtfs";
 import {
   getArrivals,
   getAllArrivalsForStation,
+  getTripById,
 } from "@/lib/gtfsrt";
 import { search } from "@/lib/search";
 
@@ -233,6 +236,66 @@ const handler = createMcpHandler(
         }));
         return {
           content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+        };
+      },
+    );
+
+    // -----------------------------------------------------------------
+    // get_trip
+    // -----------------------------------------------------------------
+    server.tool(
+      "get_trip",
+      "Track a specific train by trip ID. Returns every upcoming stop with arrival times. Use get_arrivals first to find trip IDs.",
+      {
+        trip_id: z.string().describe("Trip ID from get_arrivals response"),
+        route_slug: z.string().describe("Route slug (lowercase), e.g. 'q'"),
+      },
+      async ({ trip_id, route_slug }) => {
+        const route = getRouteBySlug(route_slug);
+        if (!route) {
+          return {
+            content: [{ type: "text" as const, text: `Route not found: "${route_slug}". Valid slugs: ${getRoutes().map((r) => r.slug).join(", ")}` }],
+            isError: true,
+          };
+        }
+
+        const trip = await getTripById(route.id, trip_id);
+        if (!trip) {
+          return {
+            content: [{ type: "text" as const, text: `No active trip found for ID "${trip_id}" on route ${route.shortName}. The train may have completed its run.` }],
+            isError: true,
+          };
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        const stops = trip.stopTimes.map((st) => {
+          const station = getStationByChildStopId(st.stopId);
+          const time = st.arrivalTime ?? st.departureTime;
+          const minutesAway = time != null ? Math.max(0, Math.round((time - now) / 60)) : null;
+          const status = time != null && time <= now ? "passed" : "upcoming";
+
+          return {
+            station: station ? station.name : st.stopId,
+            station_slug: station?.slug ?? null,
+            arrival_time_iso: st.arrivalTime
+              ? new Date(st.arrivalTime * 1000).toISOString()
+              : null,
+            minutes_away: minutesAway,
+            status,
+          };
+        });
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: JSON.stringify({
+              trip_id: trip.tripId,
+              route: route.shortName,
+              direction: trip.directionId === 0 ? "uptown" : "downtown",
+              stops,
+              fetched_at: new Date().toISOString(),
+            }, null, 2),
+          }],
         };
       },
     );

@@ -71,6 +71,21 @@ export interface Arrival {
   arrivalTime: number; // Unix timestamp
 }
 
+export interface TripStopTime {
+  stopId: string;
+  arrivalTime: number | null;
+  departureTime: number | null;
+}
+
+export interface TripDetail {
+  tripId: string;
+  routeId: string;
+  directionId: number;
+  startDate: string | null;
+  startTime: string | null;
+  stopTimes: TripStopTime[];
+}
+
 export interface DirectionArrivals {
   directionId: number;
   directionLabel: string;
@@ -326,6 +341,61 @@ export async function getNextArrivalsForRoute(
   }
 
   return result;
+}
+
+/**
+ * Fetch a specific trip by ID, returning its full stop itinerary.
+ */
+export async function getTripById(
+  routeId: string,
+  tripId: string,
+): Promise<TripDetail | null> {
+  const feedUrl = getFeedUrl(routeId);
+  const feed = await fetchFeed(feedUrl);
+
+  for (const entity of feed.entity) {
+    const tripUpdate = entity.tripUpdate;
+    if (!tripUpdate) continue;
+    if (tripUpdate.trip?.tripId !== tripId) continue;
+
+    let directionId = 0;
+    if (tripUpdate.trip && "directionId" in tripUpdate.trip) {
+      directionId = tripUpdate.trip.directionId ?? 0;
+    }
+
+    const stopTimes: TripStopTime[] = [];
+    for (const stu of tripUpdate.stopTimeUpdate || []) {
+      if (!stu.stopId) continue;
+
+      const arrTime = stu.arrival?.time;
+      const depTime = stu.departure?.time;
+
+      const toNum = (t: unknown): number | null => {
+        if (t == null) return null;
+        if (typeof t === "object" && t !== null && "toNumber" in t) {
+          return (t as { toNumber(): number }).toNumber();
+        }
+        return Number(t);
+      };
+
+      stopTimes.push({
+        stopId: stu.stopId,
+        arrivalTime: toNum(arrTime),
+        departureTime: toNum(depTime),
+      });
+    }
+
+    return {
+      tripId,
+      routeId: tripUpdate.trip?.routeId || routeId,
+      directionId,
+      startDate: tripUpdate.trip?.startDate || null,
+      startTime: tripUpdate.trip?.startTime || null,
+      stopTimes,
+    };
+  }
+
+  return null;
 }
 
 /**

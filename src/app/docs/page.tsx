@@ -88,6 +88,14 @@ export default function DocsPage() {
             example="/api/lines/q"
             realtime
           />
+          <Endpoint
+            method="GET"
+            path="/api/trips/{tripId}?route={routeSlug}"
+            description="Track a specific train. Returns every stop on the trip with arrival times, station names, and minutes_away. Get trip IDs from any arrivals endpoint."
+            params={[["route", "Route slug (required), e.g. q"]]}
+            example="/api/trips/051800_Q..N03R?route=q"
+            realtime
+          />
         </div>
       </section>
 
@@ -177,6 +185,11 @@ export default function DocsPage() {
             name="list_routes"
             description="List all 29 subway routes."
             input="{}"
+          />
+          <Tool
+            name="get_trip"
+            description="Track a specific train by trip ID. Returns every stop with arrival times."
+            input='{ "trip_id": "051800_Q..N03R", "route_slug": "q" }'
           />
         </div>
 

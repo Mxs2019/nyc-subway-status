@@ -53,6 +53,15 @@ export async function GET() {
             "Next arrival at every station on a route. Includes minutes_away.",
           example: "/api/lines/q",
         },
+        trip_detail: {
+          url: "/api/trips/{tripId}?route={routeSlug}",
+          description:
+            "Track a specific train by trip ID. Returns every stop with arrival times and station names. Get trip IDs from any arrivals endpoint.",
+          params: {
+            route: "Route slug (required, e.g. 'q')",
+          },
+          example: "/api/trips/051800_Q..N03R?route=q",
+        },
         mcp_server: {
           url: "/mcp",
           description:
@@ -63,6 +72,7 @@ export async function GET() {
             "get_station_arrivals",
             "list_stations",
             "list_routes",
+            "get_trip",
           ],
         },
       },

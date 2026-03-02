@@ -43,6 +43,12 @@ Next arrival at every station on a route. Each station has next_uptown
 and next_downtown with minutes_away, or null if no upcoming train.
 Example: /api/lines/q
 
+### GET /api/trips/{tripId}?route={routeSlug}
+Track a specific train by trip ID. Returns every stop on the trip with
+arrival times, station names, and minutes_away. The route param is required
+to select the correct MTA feed. Get trip IDs from any arrivals endpoint.
+Example: /api/trips/051800_Q..N03R?route=q
+
 ## Slug Examples
 
 Station slugs: 14-st-union-sq, 72-st-n-q-r, times-sq-42-st, fulton-st
@@ -71,7 +77,7 @@ AI agent integration. Connect via Streamable HTTP:
 
   URL: https://nyc-subway-status.com/mcp
 
-Tools: search_subway, get_arrivals, get_station_arrivals, list_stations, list_routes
+Tools: search_subway, get_arrivals, get_station_arrivals, list_stations, list_routes, get_trip
 
 Claude Desktop / Cursor config:
 {

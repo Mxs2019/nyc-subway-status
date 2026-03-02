@@ -36,6 +36,7 @@ let _stations: Station[] | null = null;
 let _routes: Route[] | null = null;
 let _stationRoutes: Record<string, string[]> | null = null;
 let _routeStations: Record<string, string[]> | null = null;
+let _childStopToStation: Map<string, Station> | null = null;
 
 export function getStations(): Station[] {
   if (!_stations) _stations = loadJson<Station[]>("stations.json");
@@ -74,6 +75,20 @@ export function getRouteById(id: string): Route | undefined {
 export function getRoutesForStation(stationId: string): Route[] {
   const routeIds = getStationRoutes()[stationId] || [];
   return routeIds.map(getRouteById).filter(Boolean) as Route[];
+}
+
+export function getStationByChildStopId(stopId: string): Station | undefined {
+  if (!_childStopToStation) {
+    _childStopToStation = new Map();
+    for (const station of getStations()) {
+      for (const childId of station.childStopIds) {
+        _childStopToStation.set(childId, station);
+      }
+    }
+  }
+  // Try exact match first, then strip N/S suffix
+  return _childStopToStation.get(stopId)
+    ?? _childStopToStation.get(stopId.replace(/[NS]$/, ""));
 }
 
 export function getStationsForRoute(routeId: string): Station[] {
