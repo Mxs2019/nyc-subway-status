@@ -59,7 +59,7 @@ export function OgBranding({ text }: { text?: string }) {
         marginTop: 20,
       }}
     >
-      {text ?? "nycsubwaystatus.com"}
+      {text ?? "nyc-subway-status.com"}
     </span>
   );
 }

@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { getRoutes, getStationRoutes, getStations } from "@/lib/gtfs";
 
 const BASE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://nycsubwaystatus.com";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://nyc-subway-status.com";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const stations = getStations();

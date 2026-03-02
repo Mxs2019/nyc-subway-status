@@ -96,7 +96,7 @@ Next.js 15 changed fetch caching defaults from 14: fetches are **no longer cache
 - `GTFS_STATIC_URL` — URL to GTFS static zip (default: `gtfs_supplemented.zip`)
 - `GTFS_RT_TRIPUPDATES_URLS` — Comma-separated GTFS-RT TripUpdate feed URLs (optional override)
 - `GTFS_RT_ALERTS_URL` — Optional alerts feed URL
-- `NEXT_PUBLIC_SITE_URL` — Site URL for metadata/sitemap (default: `https://nycsubwaystatus.com`)
+- `NEXT_PUBLIC_SITE_URL` — Site URL for metadata/sitemap (default: `https://nyc-subway-status.com`)
 
 ## MTA GTFS-RT Feed URLs (no auth)
 

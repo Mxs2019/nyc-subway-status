@@ -11,7 +11,7 @@ const mono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || "https://nycsubwaystatus.com"
+    process.env.NEXT_PUBLIC_SITE_URL || "https://nyc-subway-status.com"
   ),
   title: {
     default: "NYC Subway Status",
