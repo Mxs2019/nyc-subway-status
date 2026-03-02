@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     siteName: "NYC Subway Status",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
   },
 };
 

@@ -1,79 +1,75 @@
 import { ImageResponse } from "next/og";
+import {
+  getFont,
+  OG_SIZE,
+  OgContainer,
+  OgBranding,
+  OgRouteBullet,
+  TEXT_COLOR,
+} from "@/lib/og";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 export const alt = "NYC Subway Status — Real-time subway arrival times";
-export const size = { width: 1200, height: 630 };
+export const size = OG_SIZE;
 export const contentType = "image/png";
+
+const SHOWCASE_BULLETS = [
+  { shortName: "1", color: "#EE352E", textColor: "#FFFFFF" },
+  { shortName: "A", color: "#0039A6", textColor: "#FFFFFF" },
+  { shortName: "7", color: "#B933AD", textColor: "#FFFFFF" },
+  { shortName: "L", color: "#A7A9AC", textColor: "#000000" },
+  { shortName: "N", color: "#FCCC0A", textColor: "#000000" },
+  { shortName: "G", color: "#6CBE45", textColor: "#FFFFFF" },
+  { shortName: "B", color: "#FF6319", textColor: "#FFFFFF" },
+  { shortName: "Q", color: "#FCCC0A", textColor: "#000000" },
+];
 
 export default function Image() {
   return new ImageResponse(
     (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          width: "100%",
-          height: "100%",
-          backgroundColor: "#0a0a0a",
-          gap: 40,
-        }}
-      >
-        {/* Q Subway Bullet */}
+      <OgContainer>
         <div
           style={{
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 180,
-            height: 180,
-            borderRadius: "50%",
-            backgroundColor: "#F6BC26",
+            gap: 16,
+            marginBottom: 40,
           }}
         >
-          <span
-            style={{
-              fontSize: 110,
-              fontWeight: 700,
-              color: "#000000",
-              lineHeight: 1,
-            }}
-          >
-            Q
-          </span>
+          {SHOWCASE_BULLETS.map((b) => (
+            <OgRouteBullet
+              key={b.shortName}
+              shortName={b.shortName}
+              color={b.color}
+              textColor={b.textColor}
+              size={72}
+            />
+          ))}
         </div>
 
-        {/* Site Title */}
-        <div
+        <span
           style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 12,
+            fontSize: 52,
+            fontWeight: 700,
+            color: TEXT_COLOR,
+            letterSpacing: "-0.02em",
           }}
         >
-          <span
-            style={{
-              fontSize: 48,
-              fontWeight: 700,
-              color: "#ffffff",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            NYC Subway Status
-          </span>
-          <span
-            style={{
-              fontSize: 24,
-              color: "#a0a0a0",
-            }}
-          >
-            Real-time arrival times for every station and line
-          </span>
-        </div>
-      </div>
+          NYC Subway Status
+        </span>
+
+        <OgBranding text="Real-time arrival times for every station and line" />
+      </OgContainer>
     ),
-    { ...size }
+    {
+      ...size,
+      fonts: [
+        {
+          name: "GeistMono",
+          data: getFont(),
+          style: "normal",
+          weight: 700,
+        },
+      ],
+    }
   );
 }
