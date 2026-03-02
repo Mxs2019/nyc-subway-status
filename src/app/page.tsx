@@ -45,6 +45,9 @@ export default function Home() {
         <a href="/llms.txt" className="text-xs text-muted hover:text-foreground transition-colors">
           llms.txt
         </a>
+        <a href="/about" className="text-xs text-muted hover:text-foreground transition-colors">
+          About
+        </a>
       </footer>
     </main>
   );
