@@ -56,7 +56,7 @@ export function HomeSearch({ stations, routes, stationRoutes }: HomeSearchProps)
                 className="flex items-center justify-between gap-2 no-underline hover:opacity-70"
               >
                 <span className="text-sm">{station.name}</span>
-                <span className="flex gap-1 shrink-0 flex-wrap justify-end">
+                <span className="flex gap-1 flex-wrap justify-end">
                   {routeIds.map((rid) => {
                     const r = routeMap.get(rid);
                     if (!r) return null;
@@ -154,7 +154,7 @@ export function HomeSearch({ stations, routes, stationRoutes }: HomeSearchProps)
                           className="flex items-center justify-between gap-2 no-underline hover:opacity-70"
                         >
                           <span className="text-sm">{station.name}</span>
-                          <span className="flex gap-1 shrink-0 flex-wrap justify-end">
+                          <span className="flex gap-1 flex-wrap justify-end">
                             {routeIds.map((rid) => {
                               const r = routeMap.get(rid);
                               if (!r) return null;

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "FAQ",
   description:
-    "Frequently asked questions about NYC Subway Status and real-time arrival data.",
+    "Frequently asked questions about NYC Subway Status — how arrival data works, update frequency, station groupings, and supported lines.",
 };
 
 const faqs = [
@@ -42,8 +42,25 @@ const faqs = [
 ];
 
 export default function FaqPage() {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map(({ q, a }) => ({
+      "@type": "Question",
+      name: q,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: a,
+      },
+    })),
+  };
+
   return (
     <main className="max-w-2xl mx-auto px-4 py-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <a
         href="/"
         className="text-sm text-muted hover:text-foreground transition-colors"

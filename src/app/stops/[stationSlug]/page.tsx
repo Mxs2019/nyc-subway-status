@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!station) return {};
   return {
     title: station.name,
-    description: `Real-time subway arrivals at ${station.name}.`,
+    description: `Real-time subway arrivals at ${station.name}. See upcoming uptown and downtown trains, departure times, and all lines serving this station.`,
   };
 }
 
@@ -82,8 +82,26 @@ export default async function StationPage({ params }: Props) {
     error = "Unable to load realtime data. Please try again.";
   }
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "TransitStation",
+    name: station.name,
+    ...(station.lat != null &&
+      station.lon != null && {
+        geo: {
+          "@type": "GeoCoordinates",
+          latitude: station.lat,
+          longitude: station.lon,
+        },
+      }),
+  };
+
   return (
     <main className="max-w-2xl mx-auto px-4 py-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <RecentTracker type="stop" stationSlug={station.slug} />
       <PageHeader title={station.name} backHref="/stops" backLabel="All Stops" />
 

@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!route) return {};
   return {
     title: `${route.shortName} Line`,
-    description: `Stations and real-time status for the ${route.shortName} line.`,
+    description: `Real-time ${route.shortName} train arrivals and status. See upcoming trains at every station on the ${route.longName} line.`,
   };
 }
 
@@ -47,12 +47,6 @@ export default async function RoutePage({ params }: Props) {
   } catch (err) {
     console.error("Failed to fetch realtime data for route:", err);
   }
-
-  // Only show stations with upcoming arrivals
-  const activeStations = stations.filter((station) => {
-    const arrivals = nextArrivals.get(station.id);
-    return arrivals && (arrivals.uptown || arrivals.downtown);
-  });
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-8">
@@ -71,36 +65,50 @@ export default async function RoutePage({ params }: Props) {
         style={{ borderColor: route.color }}
       >
         <p className="text-xs text-muted">
-          {activeStations.length} stations
+          {stations.length} stations · ↑ Uptown · ↓ Downtown
         </p>
       </div>
 
       <section>
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted mb-3">
-          Stations
-        </h2>
-        <ul className="divide-y divide-border">
-          {activeStations.map((station) => {
-            const arrivals = nextArrivals.get(station.id)!;
+        <ul>
+          {stations.map((station, i) => {
+            const arrivals = nextArrivals.get(station.id);
+            const hasArrivals = arrivals && (arrivals.uptown || arrivals.downtown);
             return (
-              <li key={station.id} className="py-3">
+              <li key={station.id} className="flex">
+                <div className="flex flex-col items-center shrink-0 w-5 mr-3">
+                  <div
+                    className="w-0.5 flex-1"
+                    style={i === 0 ? undefined : { backgroundColor: route.color }}
+                  />
+                  <div
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: route.color }}
+                  />
+                  <div
+                    className="w-0.5 flex-1"
+                    style={i === stations.length - 1 ? undefined : { backgroundColor: route.color }}
+                  />
+                </div>
                 <a
                   href={`/stops/${station.slug}/lines/${route.slug}`}
-                  className="flex items-center justify-between no-underline hover:opacity-70"
+                  className="flex-1 flex items-center justify-between flex-wrap gap-y-1 py-3 border-b border-border no-underline hover:opacity-70"
                 >
-                  <span className="text-sm font-medium">{station.name}</span>
-                  <div className="flex gap-6 text-xs text-muted">
-                    {arrivals.uptown && (
-                      <span>
-                        ↑ <ArrivalTime timestamp={arrivals.uptown.arrivalTime} />
-                      </span>
-                    )}
-                    {arrivals.downtown && (
-                      <span>
-                        ↓ <ArrivalTime timestamp={arrivals.downtown.arrivalTime} />
-                      </span>
-                    )}
-                  </div>
+                  <span className={`text-sm font-medium ${hasArrivals ? '' : 'text-muted'}`}>{station.name}</span>
+                  {hasArrivals && (
+                    <div className="flex gap-6 text-xs shrink-0">
+                      {arrivals!.uptown && (
+                        <span>
+                          ↑ <ArrivalTime timestamp={arrivals!.uptown.arrivalTime} />
+                        </span>
+                      )}
+                      {arrivals!.downtown && (
+                        <span>
+                          ↓ <ArrivalTime timestamp={arrivals!.downtown.arrivalTime} />
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </a>
               </li>
             );

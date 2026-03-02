@@ -9,7 +9,7 @@ export default function Home() {
   return (
     <main className="max-w-2xl mx-auto px-4 py-12">
       <h1 className="text-2xl font-bold tracking-tight">NYC Subway Status</h1>
-      <p className="mt-2 text-muted text-sm">
+      <p className="mt-2 text-muted text-xs leading-relaxed">
         Real-time arrival times for every station and line.
       </p>
 
@@ -20,6 +20,17 @@ export default function Home() {
           stationRoutes={stationRoutes}
         />
       </div>
+
+      <div className="mt-6 flex gap-4">
+        <a href="/stops" className="text-sm no-underline hover:opacity-70">All Stops →</a>
+        <a href="/lines" className="text-sm no-underline hover:opacity-70">All Lines →</a>
+      </div>
+
+      <footer className="mt-12 pt-4 border-t border-border">
+        <a href="/faq" className="text-xs text-muted hover:text-foreground transition-colors">
+          FAQ
+        </a>
+      </footer>
     </main>
   );
 }

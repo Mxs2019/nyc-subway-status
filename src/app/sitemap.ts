@@ -15,6 +15,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: BASE_URL, changeFrequency: "daily", priority: 1 },
     { url: `${BASE_URL}/stops`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE_URL}/lines`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${BASE_URL}/faq`, changeFrequency: "monthly", priority: 0.4 },
   ];
 
   // Station pages

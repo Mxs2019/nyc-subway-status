@@ -378,7 +378,7 @@ async function main() {
       const seqMap = routeStationSequence.get(routeId)!;
       const seq = parseInt(st.stop_sequence, 10);
       const current = seqMap.get(canonicalId);
-      if (current === undefined || seq < current) {
+      if (current === undefined || seq > current) {
         seqMap.set(canonicalId, seq);
       }
     }
@@ -456,9 +456,9 @@ async function main() {
   for (const [routeId, stationIds] of routeStations) {
     const seqMap = routeStationSequence.get(routeId);
     routeStationsObj[routeId] = Array.from(stationIds).sort((a, b) => {
-      const seqA = seqMap?.get(a) ?? Infinity;
-      const seqB = seqMap?.get(b) ?? Infinity;
-      return seqA - seqB;
+      const seqA = seqMap?.get(a) ?? -1;
+      const seqB = seqMap?.get(b) ?? -1;
+      return seqB - seqA;
     });
   }
 

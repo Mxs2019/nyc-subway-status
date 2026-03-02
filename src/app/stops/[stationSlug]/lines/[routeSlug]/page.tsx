@@ -53,7 +53,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!station || !route) return {};
   return {
     title: `${station.name} — ${route.shortName} Train`,
-    description: `Real-time ${route.shortName} train arrivals at ${station.name}.`,
+    description: `Real-time ${route.shortName} train arrivals at ${station.name}. See upcoming uptown and downtown departures with live countdown times.`,
   };
 }
 
@@ -103,6 +103,8 @@ export default async function StationRoutePage({ params }: Props) {
         <p className="text-sm font-medium">{route.longName}</p>
       </div>
 
+      <p className="text-xs text-muted mb-6">Data is live — refresh for latest times.</p>
+
       {error && (
         <div className="border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 mb-6">
           {error}
@@ -123,13 +125,7 @@ export default async function StationRoutePage({ params }: Props) {
             </h2>
             <ul className="divide-y divide-border">
               {da.arrivals.map((arrival, i) => (
-                <li key={`${arrival.tripId}-${i}`} className="py-2 flex items-center gap-3">
-                  <RouteBullet
-                    shortName={route.shortName}
-                    color={route.color}
-                    textColor={route.textColor}
-                    size="sm"
-                  />
+                <li key={`${arrival.tripId}-${i}`} className="py-2">
                   <ArrivalTime timestamp={arrival.arrivalTime} />
                 </li>
               ))}
@@ -190,7 +186,7 @@ export default async function StationRoutePage({ params }: Props) {
       })()}
 
       <footer className="mt-6 pt-4 border-t border-border text-xs text-muted">
-        <p>Data from MTA GTFS-RT. Refresh page for latest times.</p>
+        <p>Data from MTA GTFS-RT feeds.</p>
       </footer>
     </main>
   );

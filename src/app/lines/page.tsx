@@ -5,7 +5,8 @@ import { RouteList } from "@/components/route-list";
 
 export const metadata: Metadata = {
   title: "All Lines",
-  description: "Browse all NYC subway lines with real-time status.",
+  description:
+    "Browse all NYC subway lines. View real-time train arrivals, station lists, and service status for every route in the system.",
 };
 
 export default function LinesPage() {

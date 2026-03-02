@@ -5,7 +5,8 @@ import { StationList } from "@/components/station-list";
 
 export const metadata: Metadata = {
   title: "All Stops",
-  description: "Browse all NYC subway stations with real-time arrival information.",
+  description:
+    "Browse all NYC subway stations. See real-time arrival times, upcoming trains, and service info for every stop in the system.",
 };
 
 export default function StopsPage() {

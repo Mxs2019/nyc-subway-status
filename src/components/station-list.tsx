@@ -31,10 +31,10 @@ export function StationList({
               <li key={station.id} className="py-2">
                 <a
                   href={`/stops/${station.slug}`}
-                  className="flex items-center justify-between gap-2 no-underline hover:opacity-70"
+                  className="flex items-center flex-wrap gap-2 gap-y-1 no-underline hover:opacity-70"
                 >
                   <span className="text-sm">{station.name}</span>
-                  <span className="flex gap-1 shrink-0">
+                  <span className="flex gap-1 flex-wrap ml-auto">
                     {routeIds.map((rid) => {
                       const r = routeMap.get(rid);
                       if (!r) return null;

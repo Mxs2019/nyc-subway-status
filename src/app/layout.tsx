@@ -9,16 +9,20 @@ const mono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://nyc-subway-status.com";
+
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || "https://nyc-subway-status.com"
-  ),
+  metadataBase: new URL(siteUrl),
   title: {
     default: "NYC Subway Status",
     template: "%s | NYC Subway Status",
   },
   description:
     "Real-time NYC subway arrival times for every station and line.",
+  alternates: {
+    canonical: "./",
+  },
   openGraph: {
     type: "website",
     siteName: "NYC Subway Status",
@@ -33,9 +37,22 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "NYC Subway Status",
+    url: siteUrl,
+    description:
+      "Real-time NYC subway arrival times for every station and line.",
+  };
+
   return (
     <html lang="en">
       <body className={`${mono.variable} antialiased`}>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         {children}
         <DevTools />
         <Analytics />

@@ -15,7 +15,7 @@ import {
 } from "@/lib/og";
 
 export const runtime = "nodejs";
-export const alt = "Station route arrivals";
+export const alt = "NYC subway station and line — real-time train arrivals";
 export const size = OG_SIZE;
 export const contentType = "image/png";
 
