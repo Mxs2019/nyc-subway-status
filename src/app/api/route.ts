@@ -54,7 +54,7 @@ export async function GET() {
           example: "/api/lines/q",
         },
         mcp_server: {
-          url: "/api/mcp",
+          url: "/mcp",
           description:
             "MCP (Model Context Protocol) server for native AI agent integration. POST JSON-RPC to this endpoint.",
           tools: [

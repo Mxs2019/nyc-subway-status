@@ -139,7 +139,7 @@ export default function DocsPage() {
 
       {/* MCP Server */}
       <section className="mt-10">
-        <h2 className="text-lg font-semibold">MCP Server</h2>
+        <h2 id="mcp-server" className="text-lg font-semibold">MCP Server</h2>
         <p className="mt-2 text-sm text-muted">
           For AI agents that support the{" "}
           <a href="https://modelcontextprotocol.io" className="text-foreground">
@@ -148,7 +148,7 @@ export default function DocsPage() {
           , connect directly via Streamable HTTP:
         </p>
         <pre className="mt-3 p-3 text-xs bg-[var(--background)] border border-border rounded overflow-x-auto">
-{`POST https://nyc-subway-status.com/api/mcp`}
+{`POST https://nyc-subway-status.com/mcp`}
         </pre>
 
         <h3 className="mt-5 font-semibold text-sm">Tools</h3>
@@ -188,7 +188,7 @@ export default function DocsPage() {
 {`{
   "mcpServers": {
     "nyc-subway": {
-      "url": "https://nyc-subway-status.com/api/mcp"
+      "url": "https://nyc-subway-status.com/mcp"
     }
   }
 }`}
@@ -203,7 +203,7 @@ export default function DocsPage() {
     "nyc-subway": {
       "command": "npx",
       "args": ["-y", "mcp-remote",
-        "https://nyc-subway-status.com/api/mcp"]
+        "https://nyc-subway-status.com/mcp"]
     }
   }
 }`}

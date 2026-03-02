@@ -48,6 +48,9 @@ export default function Home() {
         <a href="/about" className="text-xs text-muted hover:text-foreground transition-colors">
           About
         </a>
+        <a href="/docs#mcp-server" className="text-xs text-muted hover:text-foreground transition-colors">
+          MCP
+        </a>
       </footer>
     </main>
   );

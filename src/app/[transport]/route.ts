@@ -2,8 +2,8 @@
  * MCP Server — exposes NYC subway data as tools for AI agents.
  *
  * Endpoints (handled by mcp-handler via [transport] dynamic segment):
- *   POST /api/mcp  — Streamable HTTP (recommended)
- *   GET  /api/sse  — SSE fallback for older clients
+ *   POST /mcp  — Streamable HTTP (recommended)
+ *   GET  /sse  — SSE fallback for older clients
  *
  * Tools:
  *   search_subway        — Search stations/routes by name
@@ -239,7 +239,7 @@ const handler = createMcpHandler(
   },
   {},
   {
-    basePath: "/api",
+    basePath: "",
     maxDuration: 60,
   },
 );

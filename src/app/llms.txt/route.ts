@@ -69,14 +69,14 @@ Errors:
 This site also runs an MCP (Model Context Protocol) server for native
 AI agent integration. Connect via Streamable HTTP:
 
-  URL: https://nyc-subway-status.com/api/mcp
+  URL: https://nyc-subway-status.com/mcp
 
 Tools: search_subway, get_arrivals, get_station_arrivals, list_stations, list_routes
 
 Claude Desktop / Cursor config:
 {
   "mcpServers": {
-    "nyc-subway": { "url": "https://nyc-subway-status.com/api/mcp" }
+    "nyc-subway": { "url": "https://nyc-subway-status.com/mcp" }
   }
 }
 
