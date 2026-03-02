@@ -45,7 +45,7 @@ async function main() {
 
   // Build
   log("Building production app...");
-  execSync("npm run build", { stdio: "inherit" });
+  execSync("pnpm run build", { stdio: "inherit" });
 
   // Start server
   log(`Starting production server on port ${PORT}...`);

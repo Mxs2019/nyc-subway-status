@@ -59,7 +59,7 @@ Next.js 15 changed fetch caching defaults from 14: fetches are **no longer cache
 
 ## Key Files
 
-- `scripts/build-gtfs.ts` — GTFS static ingestion (runs via `npm run prebuild`)
+- `scripts/build-gtfs.ts` — GTFS static ingestion (runs via `pnpm run prebuild`)
 - `src/data/gtfs/` — Generated JSON data (gitignored)
 - `src/data/station-complexes.ts` — Hardcoded MTA complex groupings (35 multi-station complexes)
 - `src/lib/gtfsrt.ts` — GTFS-RT protobuf fetch + decode (8 MTA feed endpoints)
@@ -79,7 +79,7 @@ Next.js 15 changed fetch caching defaults from 14: fetches are **no longer cache
 
 ## Workflow
 
-- **Do not run builds or type-checks.** Never run `tsc`, `npm run build`, `next build`, or similar compile/check commands unless explicitly asked.
+- **Do not run builds or type-checks.** Never run `tsc`, `pnpm run build`, `next build`, or similar compile/check commands unless explicitly asked.
 
 ## Conventions
 
