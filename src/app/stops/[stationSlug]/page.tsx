@@ -11,6 +11,7 @@ import { RouteBullet } from "@/components/route-bullet";
 import { ArrivalTime } from "@/components/arrival-time";
 import { RecentTracker } from "@/components/recent-tracker";
 import { getAllArrivalsForStation } from "@/lib/gtfsrt";
+import { AutoRefresh } from "@/components/auto-refresh";
 
 // No caching — every page load fetches fresh realtime data server-side
 export const dynamic = "force-dynamic";
@@ -102,6 +103,7 @@ export default async function StationPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <AutoRefresh />
       <RecentTracker type="stop" stationSlug={station.slug} />
       <PageHeader title={station.name} backHref="/stops" backLabel="All Stops" />
 

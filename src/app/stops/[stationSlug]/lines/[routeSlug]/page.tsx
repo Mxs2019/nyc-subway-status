@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/page-header";
 import { RouteBullet } from "@/components/route-bullet";
 import { ArrivalTime } from "@/components/arrival-time";
 import { RecentTracker } from "@/components/recent-tracker";
+import { AutoRefresh } from "@/components/auto-refresh";
 
 // No caching — every page load fetches fresh realtime data server-side
 export const dynamic = "force-dynamic";
@@ -82,6 +83,7 @@ export default async function StationRoutePage({ params }: Props) {
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-8">
+      <AutoRefresh />
       <RecentTracker type="arrival" stationSlug={station.slug} routeSlug={route.slug} />
       <PageHeader
         title={station.name}
