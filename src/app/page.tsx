@@ -1,6 +1,7 @@
 import { getRoutes, getStationRoutes, getStations } from "@/lib/gtfs";
 import { HomeSearch } from "@/components/home-search";
 import { NearbyStations } from "@/components/nearby-stations";
+import { RecentStations } from "@/components/recent-stations";
 
 export default function Home() {
   const stations = getStations();
@@ -30,28 +31,19 @@ export default function Home() {
         />
       </div>
 
+      <div className="mt-4">
+        <RecentStations
+          stations={stations}
+          routes={routes}
+          stationRoutes={stationRoutes}
+        />
+      </div>
+
       <div className="mt-6 flex gap-4">
         <a href="/stops" className="text-sm no-underline hover:opacity-70">All Stops →</a>
         <a href="/lines" className="text-sm no-underline hover:opacity-70">All Lines →</a>
       </div>
 
-      <footer className="mt-12 pt-4 border-t border-border flex gap-4">
-        <a href="/faq" className="text-xs text-muted hover:text-foreground transition-colors">
-          FAQ
-        </a>
-        <a href="/docs" className="text-xs text-muted hover:text-foreground transition-colors">
-          API Docs
-        </a>
-        <a href="/llms.txt" className="text-xs text-muted hover:text-foreground transition-colors">
-          llms.txt
-        </a>
-        <a href="/about" className="text-xs text-muted hover:text-foreground transition-colors">
-          About
-        </a>
-        <a href="/docs#mcp-server" className="text-xs text-muted hover:text-foreground transition-colors">
-          MCP
-        </a>
-      </footer>
     </main>
   );
 }

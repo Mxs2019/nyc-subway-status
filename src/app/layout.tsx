@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { DevTools } from "@/components/dev-tools";
+import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
 
 const mono = Geist_Mono({
@@ -54,6 +55,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
         {children}
+        <SiteFooter />
         <DevTools />
         <Analytics />
       </body>

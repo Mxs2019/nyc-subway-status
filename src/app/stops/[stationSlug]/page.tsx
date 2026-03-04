@@ -144,17 +144,23 @@ export default async function StationPage({ params }: Props) {
           </h2>
           <ul className="divide-y divide-border">
             {uptownArrivals.map((item, i) => (
-              <li key={`${item.tripId}-${item.route.id}-uptown-${i}`} className="py-2 flex items-center gap-3">
-                <RouteBullet
-                  shortName={item.route.shortName}
-                  color={item.route.color}
-                  textColor={item.route.textColor}
-                  size="sm"
-                />
-                <span className="text-sm">{item.route.longName}</span>
-                <span className="ml-auto">
-                  <ArrivalTime timestamp={item.arrivalTime} />
-                </span>
+              <li key={`${item.tripId}-${item.route.id}-uptown-${i}`} className="py-2">
+                <a
+                  href={`/lines/${item.route.slug}/trips/${encodeURIComponent(item.tripId)}?from=${station.slug}`}
+                  className="flex items-center gap-3 no-underline hover:opacity-70"
+                >
+                  <RouteBullet
+                    shortName={item.route.shortName}
+                    color={item.route.color}
+                    textColor={item.route.textColor}
+                    size="sm"
+                  />
+                  <span className="text-sm">{item.route.longName}</span>
+                  <span className="ml-auto">
+                    <ArrivalTime timestamp={item.arrivalTime} />
+                  </span>
+                  <span className="text-xs text-muted">→</span>
+                </a>
               </li>
             ))}
           </ul>
@@ -169,17 +175,23 @@ export default async function StationPage({ params }: Props) {
           </h2>
           <ul className="divide-y divide-border">
             {downtownArrivals.map((item, i) => (
-              <li key={`${item.tripId}-${item.route.id}-downtown-${i}`} className="py-2 flex items-center gap-3">
-                <RouteBullet
-                  shortName={item.route.shortName}
-                  color={item.route.color}
-                  textColor={item.route.textColor}
-                  size="sm"
-                />
-                <span className="text-sm">{item.route.longName}</span>
-                <span className="ml-auto">
-                  <ArrivalTime timestamp={item.arrivalTime} />
-                </span>
+              <li key={`${item.tripId}-${item.route.id}-downtown-${i}`} className="py-2">
+                <a
+                  href={`/lines/${item.route.slug}/trips/${encodeURIComponent(item.tripId)}?from=${station.slug}`}
+                  className="flex items-center gap-3 no-underline hover:opacity-70"
+                >
+                  <RouteBullet
+                    shortName={item.route.shortName}
+                    color={item.route.color}
+                    textColor={item.route.textColor}
+                    size="sm"
+                  />
+                  <span className="text-sm">{item.route.longName}</span>
+                  <span className="ml-auto">
+                    <ArrivalTime timestamp={item.arrivalTime} />
+                  </span>
+                  <span className="text-xs text-muted">→</span>
+                </a>
               </li>
             ))}
           </ul>

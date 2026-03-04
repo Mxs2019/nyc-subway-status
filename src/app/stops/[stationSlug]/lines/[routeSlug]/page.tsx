@@ -128,7 +128,13 @@ export default async function StationRoutePage({ params }: Props) {
             <ul className="divide-y divide-border">
               {da.arrivals.map((arrival, i) => (
                 <li key={`${arrival.tripId}-${i}`} className="py-2">
-                  <ArrivalTime timestamp={arrival.arrivalTime} />
+                  <a
+                    href={`/lines/${route.slug}/trips/${encodeURIComponent(arrival.tripId)}?from=${station.slug}`}
+                    className="flex items-center justify-between no-underline hover:opacity-70"
+                  >
+                    <ArrivalTime timestamp={arrival.arrivalTime} />
+                    <span className="text-xs text-muted">→</span>
+                  </a>
                 </li>
               ))}
             </ul>
@@ -187,9 +193,6 @@ export default async function StationRoutePage({ params }: Props) {
         );
       })()}
 
-      <footer className="mt-6 pt-4 border-t border-border text-xs text-muted">
-        <p>Data from MTA GTFS-RT feeds.</p>
-      </footer>
     </main>
   );
 }
