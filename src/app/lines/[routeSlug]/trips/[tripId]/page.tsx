@@ -109,39 +109,39 @@ export default async function TripPage({ params, searchParams }: Props) {
               >
                 {/* Vertical timeline */}
                 <div className="flex flex-col items-center shrink-0 w-5 mr-3 z-10">
+                  {i === 0 ? (
+                    <div className="flex-1" />
+                  ) : (
+                    <div
+                      className="w-0.5 flex-1"
+                      style={{
+                        backgroundColor: stop.passed
+                          ? `${route.color}40`
+                          : route.color,
+                      }}
+                    />
+                  )}
                   <div
-                    className="w-0.5 flex-1"
-                    style={
-                      i === 0
-                        ? undefined
-                        : {
-                            backgroundColor: stop.passed
-                              ? `${route.color}40`
-                              : route.color,
-                          }
-                    }
-                  />
-                  <div
-                    className={`rounded-full shrink-0 ${isNextStop ? "w-3.5 h-3.5" : "w-2.5 h-2.5"}`}
+                    className={`rounded-full shrink-0 ${highlight ? "w-4 h-4 ring-2 ring-white" : "w-2.5 h-2.5"}`}
                     style={{
                       backgroundColor: stop.passed
                         ? `${route.color}40`
                         : route.color,
                     }}
                   />
-                  <div
-                    className="w-0.5 flex-1"
-                    style={
-                      i === stops.length - 1
-                        ? undefined
-                        : {
-                            backgroundColor:
-                              stop.passed && stops[i + 1]?.passed
-                                ? `${route.color}40`
-                                : route.color,
-                          }
-                    }
-                  />
+                  {i === stops.length - 1 ? (
+                    <div className="flex-1" />
+                  ) : (
+                    <div
+                      className="w-0.5 flex-1"
+                      style={{
+                        backgroundColor:
+                          stop.passed && stops[i + 1]?.passed
+                            ? `${route.color}40`
+                            : route.color,
+                      }}
+                    />
+                  )}
                 </div>
 
                 {/* Stop info */}
