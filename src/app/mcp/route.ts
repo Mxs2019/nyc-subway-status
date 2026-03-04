@@ -857,10 +857,10 @@ function ensureAcceptHeader(request: Request): Request {
 }
 
 // ---------------------------------------------------------------------------
-// Next.js App Router HTTP handlers
+// Shared handler — route all HTTP methods through the MCP transport
 // ---------------------------------------------------------------------------
 
-export async function POST(request: Request): Promise<Response> {
+async function handleMcpRequest(request: Request): Promise<Response> {
   const server = createMcpServer();
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
@@ -873,16 +873,18 @@ export async function POST(request: Request): Promise<Response> {
   return transport.handleRequest(fixedRequest);
 }
 
-export async function GET(): Promise<Response> {
-  return new Response(JSON.stringify({ error: "Method not allowed. Use POST for MCP requests." }), {
-    status: 405,
-    headers: { "Content-Type": "application/json" },
-  });
+// ---------------------------------------------------------------------------
+// Next.js App Router HTTP handlers
+// ---------------------------------------------------------------------------
+
+export async function POST(request: Request): Promise<Response> {
+  return handleMcpRequest(request);
 }
 
-export async function DELETE(): Promise<Response> {
-  return new Response(JSON.stringify({ error: "Method not allowed. This server runs in stateless mode." }), {
-    status: 405,
-    headers: { "Content-Type": "application/json" },
-  });
+export async function GET(request: Request): Promise<Response> {
+  return handleMcpRequest(request);
+}
+
+export async function DELETE(request: Request): Promise<Response> {
+  return handleMcpRequest(request);
 }
