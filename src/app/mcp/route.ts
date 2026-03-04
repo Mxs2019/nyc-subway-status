@@ -861,16 +861,56 @@ function ensureAcceptHeader(request: Request): Request {
 // ---------------------------------------------------------------------------
 
 async function handleMcpRequest(request: Request): Promise<Response> {
+  const method = request.method;
+  const url = new URL(request.url);
+  const accept = request.headers.get("accept") || "(none)";
+  const contentType = request.headers.get("content-type") || "(none)";
+  const sessionId = request.headers.get("mcp-session-id") || "(none)";
+  const userAgent = request.headers.get("user-agent") || "(none)";
+
+  // Log incoming request
+  console.log(`[MCP] ${method} ${url.pathname}`, {
+    accept,
+    contentType,
+    sessionId,
+    userAgent: userAgent.slice(0, 100),
+  });
+
+  // Log request body for POST (JSON-RPC method)
+  let body: unknown = undefined;
+  if (method === "POST") {
+    try {
+      body = await request.clone().json();
+      const jsonrpc = body as { method?: string; id?: unknown };
+      console.log(`[MCP] JSON-RPC:`, {
+        method: jsonrpc.method,
+        id: jsonrpc.id,
+      });
+    } catch {
+      console.log(`[MCP] Failed to parse request body`);
+    }
+  }
+
   const server = createMcpServer();
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
   });
 
+  transport.onerror = (error) => {
+    console.error(`[MCP] Transport error:`, error.message);
+  };
+
   await server.connect(transport);
 
   const fixedRequest = ensureAcceptHeader(request);
-  return transport.handleRequest(fixedRequest);
+  const response = await transport.handleRequest(fixedRequest);
+
+  console.log(`[MCP] Response: ${response.status}`, {
+    contentType: response.headers.get("content-type") || "(none)",
+  });
+
+  return response;
 }
 
 // ---------------------------------------------------------------------------
