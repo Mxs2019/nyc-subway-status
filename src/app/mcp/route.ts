@@ -17,11 +17,9 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { IncomingMessage, ServerResponse } from "node:http";
-import { Duplex } from "node:stream";
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import {
   registerAppTool,
   registerAppResource,
@@ -835,88 +833,27 @@ function createMcpServer(): McpServer {
 }
 
 // ---------------------------------------------------------------------------
-// Node.js adapter helpers — bridge Web Request/Response to Node http types
+// Helper — ensure Accept header satisfies SDK validation.
+// Some MCP clients (e.g. ChatGPT) may not send both required media types.
 // ---------------------------------------------------------------------------
 
-function toNodeRequest(webReq: Request): IncomingMessage {
-  const mockSocket = new Duplex({
-    read() {},
-    write(_chunk, _encoding, cb) {
-      cb();
-    },
+function ensureAcceptHeader(request: Request): Request {
+  const accept = request.headers.get("accept") || "";
+  if (
+    accept.includes("application/json") &&
+    accept.includes("text/event-stream")
+  ) {
+    return request;
+  }
+  const headers = new Headers(request.headers);
+  headers.set("accept", "application/json, text/event-stream");
+  return new Request(request.url, {
+    method: request.method,
+    headers,
+    body: request.body,
+    // @ts-expect-error — duplex is required for streaming bodies in some runtimes
+    duplex: "half",
   });
-  const nodeReq = new IncomingMessage(mockSocket as never);
-  nodeReq.method = webReq.method;
-  nodeReq.url = "/mcp";
-  webReq.headers.forEach((v, k) => {
-    nodeReq.headers[k] = v;
-  });
-  // Ensure Accept header satisfies StreamableHTTPServerTransport validation.
-  // Some MCP clients (e.g. ChatGPT) may not send both required media types.
-  nodeReq.headers["accept"] = "application/json, text/event-stream";
-  return nodeReq;
-}
-
-function captureResponse(): {
-  res: ServerResponse;
-  promise: Promise<Response>;
-} {
-  const mockSocket = new Duplex({
-    read() {},
-    write(_chunk, _encoding, cb) {
-      cb();
-    },
-  });
-  const fakeReq = new IncomingMessage(mockSocket as never);
-  const res = new ServerResponse(fakeReq);
-
-  let statusCode = 200;
-  const headers: Record<string, string> = {};
-  const chunks: Uint8Array[] = [];
-
-  const promise = new Promise<Response>((resolve) => {
-    const origWriteHead = res.writeHead.bind(res);
-    res.writeHead = function (code: number, ...args: unknown[]) {
-      statusCode = code;
-      // writeHead can be called as (code, headers) or (code, statusMessage, headers)
-      const hdrs = args.length === 1 ? args[0] : args[1];
-      if (hdrs && typeof hdrs === "object" && !Array.isArray(hdrs)) {
-        for (const [k, v] of Object.entries(
-          hdrs as Record<string, string>,
-        )) {
-          if (typeof v === "string") headers[k] = v;
-        }
-      }
-      return origWriteHead(code, ...(args as [Record<string, string>]));
-    } as typeof res.writeHead;
-
-    res.write = function (chunk: unknown) {
-      if (chunk) {
-        chunks.push(
-          typeof chunk === "string"
-            ? new TextEncoder().encode(chunk)
-            : (chunk as Uint8Array),
-        );
-      }
-      return true;
-    } as typeof res.write;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    res.end = function (this: any, chunk?: unknown) {
-      if (chunk) {
-        chunks.push(
-          typeof chunk === "string"
-            ? new TextEncoder().encode(chunk)
-            : (chunk as Uint8Array),
-        );
-      }
-      const body = new Blob(chunks as BlobPart[]);
-      resolve(new Response(body, { status: statusCode, headers }));
-      return this;
-    } as typeof res.end;
-  });
-
-  return { res, promise };
 }
 
 // ---------------------------------------------------------------------------
@@ -924,21 +861,16 @@ function captureResponse(): {
 // ---------------------------------------------------------------------------
 
 export async function POST(request: Request): Promise<Response> {
-  const body = await request.json();
   const server = createMcpServer();
-  const transport = new StreamableHTTPServerTransport({
+  const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
   });
 
   await server.connect(transport);
 
-  const nodeReq = toNodeRequest(request);
-  const { res, promise } = captureResponse();
-
-  await transport.handleRequest(nodeReq, res, body);
-
-  return promise;
+  const fixedRequest = ensureAcceptHeader(request);
+  return transport.handleRequest(fixedRequest);
 }
 
 export async function GET(): Promise<Response> {
