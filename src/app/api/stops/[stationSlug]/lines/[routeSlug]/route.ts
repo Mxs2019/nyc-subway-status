@@ -2,6 +2,7 @@
  * GET /api/stops/{stationSlug}/lines/{routeSlug} — Realtime arrivals for a specific route at a station.
  */
 
+import { type NextRequest } from "next/server";
 import { apiSuccess, apiError, formatArrival } from "@/lib/api-helpers";
 import {
   getStationBySlug,
@@ -14,12 +15,15 @@ export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   {
     params,
   }: { params: Promise<{ stationSlug: string; routeSlug: string }> },
 ) {
   const { stationSlug, routeSlug } = await params;
+  const directionParam = request.nextUrl.searchParams.get("direction") as "uptown" | "downtown" | null;
+  const limitParam = request.nextUrl.searchParams.get("limit");
+  const limit = limitParam ? Math.min(Math.max(1, parseInt(limitParam, 10) || 5), 20) : 5;
   const station = getStationBySlug(stationSlug);
 
   if (!station) {
@@ -42,14 +46,14 @@ export async function GET(
     );
   }
 
-  const directions = await getArrivals(station.childStopIds, route.id);
+  const directions = await getArrivals(station.childStopIds, route.id, limit);
   const now = Math.floor(Date.now() / 1000);
 
-  const uptown = directions
+  const uptown = directionParam === "downtown" ? [] : directions
     .filter((d) => d.directionId === 0)
     .flatMap((d) => d.arrivals.map((a) => formatArrival(a, now)));
 
-  const downtown = directions
+  const downtown = directionParam === "uptown" ? [] : directions
     .filter((d) => d.directionId === 1)
     .flatMap((d) => d.arrivals.map((a) => formatArrival(a, now)));
 
@@ -63,6 +67,11 @@ export async function GET(
       slug: r.slug,
       arrivals_url: `/api/stops/${station.slug}/lines/${r.slug}`,
     }));
+
+  // Build arrivals object — omit empty direction when filtering
+  const arrivals: Record<string, ReturnType<typeof formatArrival>[]> = {};
+  if (!directionParam || directionParam === "uptown") arrivals.uptown = uptown;
+  if (!directionParam || directionParam === "downtown") arrivals.downtown = downtown;
 
   return apiSuccess(
     {
@@ -78,7 +87,7 @@ export async function GET(
         slug: route.slug,
         color: route.color,
       },
-      arrivals: { uptown, downtown },
+      arrivals,
       other_routes_at_station: otherRoutes,
     },
     `/api/stops/${stationSlug}/lines/${routeSlug}`,

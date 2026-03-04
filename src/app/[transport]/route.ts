@@ -31,12 +31,15 @@ import {
   getArrivals,
   getAllArrivalsForStation,
   getTripById,
+  planTrip,
 } from "@/lib/gtfsrt";
 import { search } from "@/lib/search";
 
-function formatArrivalForMcp(a: { arrivalTime: number; routeId: string }, now: number) {
+function formatArrivalForMcp(a: { arrivalTime: number; routeId: string; tripId: string; headsign: string }, now: number) {
   return {
     route_id: a.routeId,
+    trip_id: a.tripId,
+    headsign: a.headsign,
     minutes_away: Math.max(0, Math.round((a.arrivalTime - now) / 60)),
     arrival_time_iso: new Date(a.arrivalTime * 1000).toISOString(),
   };
@@ -54,6 +57,7 @@ const handler = createMcpHandler(
       async ({ query }) => {
         const results = search(query, 10);
         const stationRouteMap = getStationRoutes();
+        const matchedRouteIds = new Set(results.routes.map((r) => r.id));
 
         const stations = results.stations.map((s) => {
           const routeIds = stationRouteMap[s.id] || [];
@@ -61,7 +65,17 @@ const handler = createMcpHandler(
             .map((id) => getRouteById(id))
             .filter(Boolean)
             .map((r) => r!.shortName);
-          return { name: s.name, slug: s.slug, routes };
+          const matched_routes = routeIds
+            .filter((id) => matchedRouteIds.has(id))
+            .map((id) => getRouteById(id))
+            .filter(Boolean)
+            .map((r) => r!.shortName);
+          return {
+            name: s.name,
+            slug: s.slug,
+            routes,
+            ...(matched_routes.length > 0 ? { matched_routes } : {}),
+          };
         });
 
         const routes = results.routes.map((r) => ({
@@ -70,10 +84,28 @@ const handler = createMcpHandler(
           slug: r.slug,
         }));
 
+        // Build suggested_call if we matched both a station and a route that serves it
+        let suggested_call: object | undefined;
+        if (stations.length > 0 && routes.length > 0) {
+          const topStation = stations[0];
+          const topRoute = routes[0];
+          const routeIds = stationRouteMap[results.stations[0].id] || [];
+          if (routeIds.includes(results.routes[0].id)) {
+            suggested_call = {
+              tool: "get_arrivals",
+              params: { station_slug: topStation.slug, route_slug: topRoute.slug },
+            };
+          }
+        }
+
         return {
           content: [{
             type: "text" as const,
-            text: JSON.stringify({ stations, routes }, null, 2),
+            text: JSON.stringify({
+              stations,
+              routes,
+              ...(suggested_call ? { suggested_call } : {}),
+            }, null, 2),
           }],
         };
       },
@@ -88,8 +120,10 @@ const handler = createMcpHandler(
       {
         station_slug: z.string().describe('Station slug from search_subway, e.g. "72-st-n-q-r"'),
         route_slug: z.string().describe('Route slug (lowercase), e.g. "q", "a", "7"'),
+        direction: z.enum(["uptown", "downtown"]).optional().describe("Filter to one direction (optional)"),
+        limit: z.number().optional().describe("Max arrivals per direction (default: 5, max: 20)"),
       },
-      async ({ station_slug, route_slug }) => {
+      async ({ station_slug, route_slug, direction, limit }) => {
         const station = getStationBySlug(station_slug);
         if (!station) {
           return {
@@ -106,16 +140,22 @@ const handler = createMcpHandler(
           };
         }
 
-        const directions = await getArrivals(station.childStopIds, route.id);
+        const maxArrivals = Math.min(Math.max(1, limit ?? 5), 20);
+        const directions = await getArrivals(station.childStopIds, route.id, maxArrivals);
         const now = Math.floor(Date.now() / 1000);
 
-        const uptown = directions
-          .filter((d) => d.directionId === 0)
-          .flatMap((d) => d.arrivals.map((a) => formatArrivalForMcp(a, now)));
+        const result: Record<string, object[]> = {};
 
-        const downtown = directions
-          .filter((d) => d.directionId === 1)
-          .flatMap((d) => d.arrivals.map((a) => formatArrivalForMcp(a, now)));
+        if (!direction || direction === "uptown") {
+          result.uptown_arrivals = directions
+            .filter((d) => d.directionId === 0)
+            .flatMap((d) => d.arrivals.map((a) => formatArrivalForMcp(a, now)));
+        }
+        if (!direction || direction === "downtown") {
+          result.downtown_arrivals = directions
+            .filter((d) => d.directionId === 1)
+            .flatMap((d) => d.arrivals.map((a) => formatArrivalForMcp(a, now)));
+        }
 
         return {
           content: [{
@@ -123,8 +163,7 @@ const handler = createMcpHandler(
             text: JSON.stringify({
               station: station.name,
               route: route.shortName,
-              uptown_arrivals: uptown,
-              downtown_arrivals: downtown,
+              ...result,
               fetched_at: new Date().toISOString(),
             }, null, 2),
           }],
@@ -140,8 +179,11 @@ const handler = createMcpHandler(
       "Get real-time arrivals for ALL routes at a station. Returns arrivals grouped by route and direction. Use when the user asks about a station without specifying a line.",
       {
         station_slug: z.string().describe("Station slug from search_subway"),
+        direction: z.enum(["uptown", "downtown"]).optional().describe("Filter to one direction (optional)"),
+        limit: z.number().optional().describe("Max arrivals per direction per route (default: 5, max: 20)"),
+        routes: z.array(z.string()).optional().describe('Filter to specific route slugs, e.g. ["q", "n"] (optional)'),
       },
-      async ({ station_slug }) => {
+      async ({ station_slug, direction, limit, routes: routeFilter }) => {
         const station = getStationBySlug(station_slug);
         if (!station) {
           return {
@@ -150,29 +192,39 @@ const handler = createMcpHandler(
           };
         }
 
-        const routes = getRoutesForStation(station.id);
+        let routes = getRoutesForStation(station.id);
+        if (routeFilter && routeFilter.length > 0) {
+          const slugSet = new Set(routeFilter.map((s) => s.toLowerCase()));
+          const filtered = routes.filter((r) => slugSet.has(r.slug));
+          if (filtered.length > 0) routes = filtered;
+        }
         const routeIds = routes.map((r) => r.id);
+        const maxArrivals = Math.min(Math.max(1, limit ?? 5), 20);
         const allArrivals = await getAllArrivalsForStation(
           station.childStopIds,
           routeIds,
-          5,
+          maxArrivals,
           30,
         );
 
         const now = Math.floor(Date.now() / 1000);
-        const byRoute: Record<string, { uptown: object[]; downtown: object[] }> = {};
+        const byRoute: Record<string, Record<string, object[]>> = {};
 
         for (const [routeId, dirs] of allArrivals) {
           const route = routes.find((r) => r.id === routeId);
           if (!route) continue;
-          byRoute[route.shortName] = {
-            uptown: dirs
+          const entry: Record<string, object[]> = {};
+          if (!direction || direction === "uptown") {
+            entry.uptown = dirs
               .filter((d) => d.directionId === 0)
-              .flatMap((d) => d.arrivals.map((a) => formatArrivalForMcp(a, now))),
-            downtown: dirs
+              .flatMap((d) => d.arrivals.map((a) => formatArrivalForMcp(a, now)));
+          }
+          if (!direction || direction === "downtown") {
+            entry.downtown = dirs
               .filter((d) => d.directionId === 1)
-              .flatMap((d) => d.arrivals.map((a) => formatArrivalForMcp(a, now))),
-          };
+              .flatMap((d) => d.arrivals.map((a) => formatArrivalForMcp(a, now)));
+          }
+          byRoute[route.shortName] = entry;
         }
 
         return {
@@ -293,6 +345,101 @@ const handler = createMcpHandler(
               route: route.shortName,
               direction: trip.directionId === 0 ? "uptown" : "downtown",
               stops,
+              fetched_at: new Date().toISOString(),
+            }, null, 2),
+          }],
+        };
+      },
+    );
+
+    // -----------------------------------------------------------------
+    // plan_trip
+    // -----------------------------------------------------------------
+    server.tool(
+      "plan_trip",
+      "Plan a trip between two stations. Returns upcoming trains with departure, arrival, and travel times. Finds trips across all shared routes or a specific route. Use search_subway first to find station slugs.",
+      {
+        origin_slug: z.string().describe("Origin station slug"),
+        destination_slug: z.string().describe("Destination station slug"),
+        route_slug: z.string().optional().describe("Route slug to filter by (optional — if omitted, searches all shared routes)"),
+        depart_after: z.string().optional().describe("ISO timestamp — only trips departing at or after this time (optional, default: now)"),
+        limit: z.number().optional().describe("Max trips to return (default: 5, max: 20)"),
+      },
+      async ({ origin_slug, destination_slug, route_slug, depart_after, limit }) => {
+        const origin = getStationBySlug(origin_slug);
+        if (!origin) {
+          return {
+            content: [{ type: "text" as const, text: `Station not found: "${origin_slug}". Use search_subway to find the correct slug.` }],
+            isError: true,
+          };
+        }
+
+        const destination = getStationBySlug(destination_slug);
+        if (!destination) {
+          return {
+            content: [{ type: "text" as const, text: `Station not found: "${destination_slug}". Use search_subway to find the correct slug.` }],
+            isError: true,
+          };
+        }
+
+        let routeIds: string[];
+        if (route_slug) {
+          const route = getRouteBySlug(route_slug);
+          if (!route) {
+            return {
+              content: [{ type: "text" as const, text: `Route not found: "${route_slug}". Valid slugs: ${getRoutes().map((r) => r.slug).join(", ")}` }],
+              isError: true,
+            };
+          }
+          routeIds = [route.id];
+        } else {
+          const originRoutes = new Set(getRoutesForStation(origin.id).map((r) => r.id));
+          const destRoutes = getRoutesForStation(destination.id).map((r) => r.id);
+          routeIds = destRoutes.filter((id) => originRoutes.has(id));
+
+          if (routeIds.length === 0) {
+            return {
+              content: [{ type: "text" as const, text: `No direct route between ${origin.name} and ${destination.name}. A transfer would be required.` }],
+              isError: true,
+            };
+          }
+        }
+
+        const departAfter = depart_after ? Math.floor(new Date(depart_after).getTime() / 1000) : undefined;
+        const maxTrips = Math.min(Math.max(1, limit ?? 5), 20);
+
+        const trips = await planTrip(
+          origin.childStopIds,
+          destination.childStopIds,
+          routeIds,
+          departAfter,
+          maxTrips,
+        );
+
+        const now = Math.floor(Date.now() / 1000);
+        const formattedTrips = trips.map((t) => {
+          const route = getRouteById(t.routeId);
+          return {
+            trip_id: t.tripId,
+            route: route?.shortName ?? t.routeId,
+            depart_origin_iso: new Date(t.departOriginTime * 1000).toISOString(),
+            depart_origin_minutes: Math.max(0, Math.round((t.departOriginTime - now) / 60)),
+            arrive_destination_iso: new Date(t.arriveDestinationTime * 1000).toISOString(),
+            arrive_destination_minutes: Math.max(0, Math.round((t.arriveDestinationTime - now) / 60)),
+            travel_time_minutes: Math.round((t.arriveDestinationTime - t.departOriginTime) / 60),
+            num_stops: t.numStops,
+          };
+        });
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: JSON.stringify({
+              origin: origin.name,
+              origin_slug: origin.slug,
+              destination: destination.name,
+              destination_slug: destination.slug,
+              trips: formattedTrips,
               fetched_at: new Date().toISOString(),
             }, null, 2),
           }],

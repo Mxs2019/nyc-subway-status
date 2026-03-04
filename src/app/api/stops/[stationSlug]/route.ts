@@ -2,9 +2,11 @@
  * GET /api/stops/{stationSlug} — Realtime arrivals for all routes at a station.
  */
 
+import { type NextRequest } from "next/server";
 import { apiSuccess, apiError, formatArrival } from "@/lib/api-helpers";
 import {
   getStationBySlug,
+  getRouteBySlug,
   getRoutesForStation,
   getRouteById,
 } from "@/lib/gtfs";
@@ -14,10 +16,14 @@ export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ stationSlug: string }> },
 ) {
   const { stationSlug } = await params;
+  const directionParam = request.nextUrl.searchParams.get("direction") as "uptown" | "downtown" | null;
+  const limitParam = request.nextUrl.searchParams.get("limit");
+  const limit = limitParam ? Math.min(Math.max(1, parseInt(limitParam, 10) || 5), 20) : 5;
+  const routesParam = request.nextUrl.searchParams.get("routes");
   const station = getStationBySlug(stationSlug);
 
   if (!station) {
@@ -29,13 +35,25 @@ export async function GET(
     );
   }
 
-  const routes = getRoutesForStation(station.id);
+  const allStationRoutes = getRoutesForStation(station.id);
+
+  // Filter to specific routes if requested
+  let routes = allStationRoutes;
+  if (routesParam) {
+    const slugs = routesParam.split(",").map((s) => s.trim().toLowerCase());
+    const filtered = slugs
+      .map((slug) => getRouteBySlug(slug))
+      .filter((r) => r != null && allStationRoutes.some((sr) => sr.id === r.id));
+    if (filtered.length > 0) {
+      routes = filtered;
+    }
+  }
   const routeIds = routes.map((r) => r.id);
 
   const allArrivals = await getAllArrivalsForStation(
     station.childStopIds,
     routeIds,
-    5,
+    limit,
     60,
   );
 
@@ -60,6 +78,9 @@ export async function GET(
     byRoute[key] = { uptown: [], downtown: [] };
 
     for (const dir of directions) {
+      if (directionParam === "uptown" && dir.directionId !== 0) continue;
+      if (directionParam === "downtown" && dir.directionId !== 1) continue;
+
       const formatted = dir.arrivals.map((a) => formatArrival(a, now));
       if (dir.directionId === 0) {
         byRoute[key].uptown = formatted;

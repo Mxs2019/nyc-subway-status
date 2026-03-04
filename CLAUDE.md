@@ -57,6 +57,14 @@ Next.js 15 changed fetch caching defaults from 14: fetches are **no longer cache
 /sitemap.xml                              Auto-generated sitemap
 ```
 
+## API & MCP Architecture
+
+The REST API (`/api/*`) is the **source of truth** for all data shaping and business logic. The MCP server (`src/app/[transport]/route.ts`) must be a **thin wrapper** that calls the same underlying functions and returns data matching the API response schemas exactly. When adding features or fixing bugs:
+
+1. Implement the change in the API layer first (route handlers + shared helpers like `api-helpers.ts`, `gtfsrt.ts`)
+2. Update the MCP to pass through the same data — the MCP's `formatArrivalForMcp` should mirror `formatArrival` from `api-helpers.ts`
+3. Never add logic to the MCP that doesn't exist in the API
+
 ## Key Files
 
 - `scripts/build-gtfs.ts` — GTFS static ingestion (runs via `pnpm run prebuild`)

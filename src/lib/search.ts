@@ -72,7 +72,20 @@ export function search(query: string, limit: number = 10): SearchResults {
   const stations = getStations();
   const routes = getRoutes();
 
-  const stationResults = getStationIndex().search(query);
+  // First try the full query for stations
+  let stationResults = getStationIndex().search(query);
+
+  // If no station results, try stripping route-like tokens (e.g., "union square Q" → "union square")
+  // This handles queries where a route letter/number prevents station matching
+  if (stationResults.length === 0) {
+    const routeByShortName = new Set(routes.map((r) => r.shortName.toLowerCase()));
+    const terms = query.trim().split(/\s+/);
+    const stationTerms = terms.filter((t) => !routeByShortName.has(t.toLowerCase()));
+    if (stationTerms.length > 0 && stationTerms.length < terms.length) {
+      stationResults = getStationIndex().search(stationTerms.join(" "));
+    }
+  }
+
   let routeResults = getRouteIndex().search(query);
 
   // If the full query didn't match any routes, check for exact route shortName

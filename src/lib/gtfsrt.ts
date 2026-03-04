@@ -6,6 +6,7 @@
  */
 
 import GtfsRealtimeBindings from "gtfs-realtime-bindings";
+import { getStationByChildStopId } from "./gtfs";
 
 const { FeedMessage } = GtfsRealtimeBindings.transit_realtime;
 
@@ -69,6 +70,7 @@ export interface Arrival {
   directionId: number;
   stopId: string;
   arrivalTime: number; // Unix timestamp
+  headsign: string;    // Last stop name (terminus) for this trip
 }
 
 export interface TripStopTime {
@@ -116,6 +118,20 @@ function getDirectionLabelFromArrivals(
   if (northboundCount > 0) return "Northbound";
   if (southboundCount > 0) return "Southbound";
   return `Direction ${fallbackDirectionId}`;
+}
+
+/**
+ * Derive headsign from the last stop in a trip's stop_time_update list.
+ * Returns the station name if resolvable, otherwise the raw stop ID.
+ */
+function getHeadsign(stopTimeUpdates: { stopId?: string | null }[]): string {
+  for (let i = stopTimeUpdates.length - 1; i >= 0; i--) {
+    const stopId = stopTimeUpdates[i].stopId;
+    if (!stopId) continue;
+    const station = getStationByChildStopId(stopId);
+    return station?.name ?? stopId;
+  }
+  return "";
 }
 
 // ---------------------------------------------------------------------------
@@ -193,6 +209,8 @@ export async function getArrivals(
     }
 
     const stopTimeUpdates = tripUpdate.stopTimeUpdate || [];
+    const headsign = getHeadsign(stopTimeUpdates);
+
     for (const stu of stopTimeUpdates) {
       const stopId = stu.stopId;
       if (!stopId || !stopIdSet.has(stopId)) continue;
@@ -226,6 +244,7 @@ export async function getArrivals(
         directionId: dir,
         stopId,
         arrivalTime: timestamp,
+        headsign,
       });
     }
   }
@@ -296,7 +315,10 @@ export async function getNextArrivalsForRoute(
     )
       continue;
 
-    for (const stu of tripUpdate.stopTimeUpdate || []) {
+    const stopTimeUpdates = tripUpdate.stopTimeUpdate || [];
+    const headsign = getHeadsign(stopTimeUpdates);
+
+    for (const stu of stopTimeUpdates) {
       const stopId = stu.stopId;
       if (!stopId) continue;
 
@@ -324,6 +346,7 @@ export async function getNextArrivalsForRoute(
             directionId,
             stopId,
             arrivalTime: timestamp,
+            headsign,
           };
         }
       } else {
@@ -334,6 +357,7 @@ export async function getNextArrivalsForRoute(
             directionId,
             stopId,
             arrivalTime: timestamp,
+            headsign,
           };
         }
       }
@@ -449,6 +473,8 @@ export async function getAllArrivalsForStation(
       if (!tripRouteId || !targetRoutes.has(tripRouteId)) continue;
 
       const stopTimeUpdates = tripUpdate.stopTimeUpdate || [];
+      const headsign = getHeadsign(stopTimeUpdates);
+
       for (const stu of stopTimeUpdates) {
         const stopId = stu.stopId;
         if (!stopId || !stopIdSet.has(stopId)) continue;
@@ -476,6 +502,7 @@ export async function getAllArrivalsForStation(
           directionId,
           stopId,
           arrivalTime: timestamp,
+          headsign,
         });
         routeArrivals.set(tripRouteId, existing);
       }
@@ -506,4 +533,120 @@ export async function getAllArrivalsForStation(
   }
 
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// Trip planning — find trips connecting two stations
+// ---------------------------------------------------------------------------
+
+export interface PlannedTrip {
+  tripId: string;
+  routeId: string;
+  departOriginTime: number;     // Unix timestamp
+  arriveDestinationTime: number; // Unix timestamp
+  numStops: number;             // stops between origin and destination (inclusive)
+}
+
+/**
+ * Find real-time trips that connect an origin station to a destination station
+ * on one or more routes. Uses GTFS-RT TripUpdate data to match trips that
+ * stop at both stations in the correct order.
+ */
+export async function planTrip(
+  originChildStopIds: string[],
+  destinationChildStopIds: string[],
+  routeIds: string[],
+  departAfter?: number,
+  limit: number = 5,
+): Promise<PlannedTrip[]> {
+  const originSet = new Set(originChildStopIds);
+  const destSet = new Set(destinationChildStopIds);
+  const now = Math.floor(Date.now() / 1000);
+  const minDeparture = departAfter ?? now;
+
+  // Group routes by feed to minimize fetches
+  const feedRoutes = new Map<string, string[]>();
+  for (const routeId of routeIds) {
+    const feedKey = ROUTE_FEED[routeId.toUpperCase()] || "default";
+    const existing = feedRoutes.get(feedKey) || [];
+    existing.push(routeId);
+    feedRoutes.set(feedKey, existing);
+  }
+
+  const trips: PlannedTrip[] = [];
+
+  const feedEntries = Array.from(feedRoutes.entries());
+  const feeds = await Promise.all(
+    feedEntries.map(async ([feedKey]) => {
+      const url = DEFAULT_FEEDS[feedKey];
+      try {
+        return await fetchFeed(url);
+      } catch {
+        return null;
+      }
+    }),
+  );
+
+  const toNum = (t: unknown): number | null => {
+    if (t == null) return null;
+    if (typeof t === "object" && t !== null && "toNumber" in t) {
+      return (t as { toNumber(): number }).toNumber();
+    }
+    return Number(t);
+  };
+
+  for (let i = 0; i < feeds.length; i++) {
+    const feed = feeds[i];
+    if (!feed) continue;
+
+    const targetRoutes = new Set(feedEntries[i][1]);
+
+    for (const entity of feed.entity) {
+      const tripUpdate = entity.tripUpdate;
+      if (!tripUpdate) continue;
+
+      const tripRouteId = tripUpdate.trip?.routeId;
+      if (!tripRouteId || !targetRoutes.has(tripRouteId)) continue;
+
+      const stopTimeUpdates = tripUpdate.stopTimeUpdate || [];
+
+      // Find origin and destination in the stop sequence
+      let originTime: number | null = null;
+      let originIdx = -1;
+      let destTime: number | null = null;
+      let destIdx = -1;
+
+      for (let j = 0; j < stopTimeUpdates.length; j++) {
+        const stu = stopTimeUpdates[j];
+        const stopId = stu.stopId;
+        if (!stopId) continue;
+
+        const time = toNum(stu.arrival?.time) ?? toNum(stu.departure?.time);
+
+        if (originIdx === -1 && originSet.has(stopId)) {
+          originTime = toNum(stu.departure?.time) ?? time;
+          originIdx = j;
+        } else if (originIdx !== -1 && destSet.has(stopId)) {
+          destTime = time;
+          destIdx = j;
+          break;
+        }
+      }
+
+      if (originIdx === -1 || destIdx === -1 || originTime == null || destTime == null) continue;
+      if (originTime < minDeparture) continue;
+      if (originTime <= now && destTime <= now) continue;
+
+      trips.push({
+        tripId: tripUpdate.trip?.tripId || "",
+        routeId: tripRouteId,
+        departOriginTime: originTime,
+        arriveDestinationTime: destTime,
+        numStops: destIdx - originIdx + 1,
+      });
+    }
+  }
+
+  trips.sort((a, b) => a.departOriginTime - b.departOriginTime);
+  return trips.slice(0, limit);
 }

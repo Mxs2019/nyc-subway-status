@@ -52,6 +52,7 @@ export function formatArrival(arrival: Arrival, nowSeconds: number) {
   return {
     route_id: arrival.routeId,
     trip_id: arrival.tripId,
+    headsign: arrival.headsign,
     direction: arrival.directionId === 0 ? "uptown" : "downtown",
     arrival_time: arrival.arrivalTime,
     arrival_time_iso: new Date(arrival.arrivalTime * 1000).toISOString(),
