@@ -851,6 +851,9 @@ function toNodeRequest(webReq: Request): IncomingMessage {
   webReq.headers.forEach((v, k) => {
     nodeReq.headers[k] = v;
   });
+  // Ensure Accept header satisfies StreamableHTTPServerTransport validation.
+  // Some MCP clients (e.g. ChatGPT) may not send both required media types.
+  nodeReq.headers["accept"] = "application/json, text/event-stream";
   return nodeReq;
 }
 
