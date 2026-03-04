@@ -87,7 +87,8 @@ The REST API (`/api/*`) is the **source of truth** for all data shaping and busi
 
 ## Workflow
 
-- **Do not run builds or type-checks.** Never run `tsc`, `pnpm run build`, `next build`, or similar compile/check commands unless explicitly asked.
+- **Run `pnpm run build` after completing a feature** to verify the build passes before committing/pushing. Fix any type errors or build failures before proceeding.
+- Do not run builds or type-checks mid-development unless you need to verify something specific.
 
 ## Conventions
 

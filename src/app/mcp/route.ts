@@ -507,6 +507,7 @@ function createMcpServer(): McpServer {
             'Filter to stations on this route, e.g. "q" (optional)',
           ),
       },
+      _meta: { ui: { resourceUri: "ui://nyc-subway/widget.html" } },
     },
     async ({ route_slug }) => {
       let stations = getStations();
@@ -547,6 +548,7 @@ function createMcpServer(): McpServer {
       description:
         "List all NYC subway routes/lines. Returns route names, slugs, and colors.",
       inputSchema: {},
+      _meta: { ui: { resourceUri: "ui://nyc-subway/widget.html" } },
     },
     async () => {
       const routes = getRoutes();
