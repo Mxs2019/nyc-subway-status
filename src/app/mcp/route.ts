@@ -115,7 +115,7 @@ function createMcpServer(): McpServer {
               csp: {
                 connectDomains: ["https://nyc-subway-status.com"],
               },
-              domain: "https://nyc-subway-status.com",
+              domain: "42eb2e8c5db8e0b08122c792af09944a.claudemcpcontent.com",
             },
           },
         },
