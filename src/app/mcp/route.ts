@@ -898,7 +898,8 @@ function captureResponse(): {
       return true;
     } as typeof res.write;
 
-    res.end = function (chunk?: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    res.end = function (this: any, chunk?: unknown) {
       if (chunk) {
         chunks.push(
           typeof chunk === "string"
@@ -906,7 +907,7 @@ function captureResponse(): {
             : (chunk as Uint8Array),
         );
       }
-      const body = new Blob(chunks);
+      const body = new Blob(chunks as BlobPart[]);
       resolve(new Response(body, { status: statusCode, headers }));
       return this;
     } as typeof res.end;
