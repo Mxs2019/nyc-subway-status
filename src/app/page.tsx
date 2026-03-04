@@ -20,23 +20,22 @@ export default function Home() {
           stations={stations}
           routes={routes}
           stationRoutes={stationRoutes}
-        />
-      </div>
-
-      <div className="mt-4">
-        <NearbyStations
-          stations={stations}
-          routes={routes}
-          stationRoutes={stationRoutes}
-        />
-      </div>
-
-      <div className="mt-4">
-        <RecentStations
-          stations={stations}
-          routes={routes}
-          stationRoutes={stationRoutes}
-        />
+        >
+          <div className="mt-4">
+            <NearbyStations
+              stations={stations}
+              routes={routes}
+              stationRoutes={stationRoutes}
+            />
+          </div>
+          <div className="mt-4">
+            <RecentStations
+              stations={stations}
+              routes={routes}
+              stationRoutes={stationRoutes}
+            />
+          </div>
+        </HomeSearch>
       </div>
 
       <div className="mt-6 flex gap-4">

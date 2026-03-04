@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { Route, Station } from "@/lib/gtfs";
 import { RouteBullet } from "./route-bullet";
 import { useFuzzySearch } from "@/hooks/use-fuzzy-search";
@@ -9,6 +9,7 @@ interface HomeSearchProps {
   stations: Station[];
   routes: Route[];
   stationRoutes: Record<string, string[]>;
+  children?: ReactNode;
 }
 
 const STATION_FIELDS = ["name"];
@@ -24,7 +25,7 @@ export function hasExactRouteMatch(
   return routes.some((r) => r.shortName.toLowerCase() === trimmed);
 }
 
-export function HomeSearch({ stations, routes, stationRoutes }: HomeSearchProps) {
+export function HomeSearch({ stations, routes, stationRoutes, children }: HomeSearchProps) {
   const [query, setQuery] = useState("");
 
   const routeMap = new Map(routes.map((r) => [r.id, r]));
@@ -111,7 +112,7 @@ export function HomeSearch({ stations, routes, stationRoutes }: HomeSearchProps)
         className="w-full border border-border px-3 py-2 text-sm bg-white focus:outline-none focus:border-foreground"
       />
 
-      {hasQuery && (
+      {hasQuery ? (
         <div className="mt-4 space-y-4">
           {hasResults ? (
             sections.map((s) => s.element)
@@ -119,6 +120,8 @@ export function HomeSearch({ stations, routes, stationRoutes }: HomeSearchProps)
             <p className="text-muted text-sm">No results found.</p>
           )}
         </div>
+      ) : (
+        children
       )}
 
     </div>
