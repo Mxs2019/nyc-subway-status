@@ -2,11 +2,9 @@
  * GET /api — Discovery endpoint describing all available API endpoints.
  */
 
-import { NextResponse } from "next/server";
 import { apiSuccess } from "@/lib/api-helpers";
 
 export async function GET() {
-  try {
   return apiSuccess(
     {
       name: "NYC Subway Status API",
@@ -102,9 +100,4 @@ export async function GET() {
     },
     "/api",
   );
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    const stack = err instanceof Error ? err.stack : undefined;
-    return NextResponse.json({ ok: false, error: message, stack }, { status: 500 });
-  }
 }
