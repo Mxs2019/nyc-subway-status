@@ -5,6 +5,7 @@
 import { type NextRequest } from "next/server";
 import { apiSuccess, apiError, formatArrival } from "@/lib/api-helpers";
 import {
+  type Route,
   getStationBySlug,
   getRouteBySlug,
   getRoutesForStation,
@@ -43,7 +44,7 @@ export async function GET(
     const slugs = routesParam.split(",").map((s) => s.trim().toLowerCase());
     const filtered = slugs
       .map((slug) => getRouteBySlug(slug))
-      .filter((r) => r != null && allStationRoutes.some((sr) => sr.id === r.id));
+      .filter((r): r is Route => r != null && allStationRoutes.some((sr) => sr.id === r.id));
     if (filtered.length > 0) {
       routes = filtered;
     }
