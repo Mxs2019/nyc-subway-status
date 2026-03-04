@@ -37,6 +37,9 @@ yarn-error.log*
 # generated GTFS data (rebuilt on deploy)
 /src/data/gtfs/
 
+# generated widget bundle (rebuilt on deploy)
+/src/widget/dist/
+
 # seo audit reports
 .unlighthouse/
 

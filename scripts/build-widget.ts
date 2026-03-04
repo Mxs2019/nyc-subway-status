@@ -1,0 +1,45 @@
+/**
+ * Build the MCP App widget — bundles src/widget/app.ts into a single
+ * self-contained HTML file with inlined JS and CSS at src/widget/dist/widget.html.
+ */
+
+import * as esbuild from "esbuild";
+import * as fs from "fs";
+import * as path from "path";
+
+const ROOT = path.resolve(import.meta.dirname ?? path.dirname(new URL(import.meta.url).pathname), "..");
+const WIDGET_DIR = path.join(ROOT, "src", "widget");
+const DIST_DIR = path.join(WIDGET_DIR, "dist");
+const TEMPLATE = path.join(WIDGET_DIR, "template.html");
+const ENTRY = path.join(WIDGET_DIR, "app.ts");
+
+async function build() {
+  // Bundle TS → JS (single file, no external deps)
+  const result = await esbuild.build({
+    entryPoints: [ENTRY],
+    bundle: true,
+    write: false,
+    format: "iife",
+    target: "es2020",
+    minify: true,
+    sourcemap: false,
+  });
+
+  const js = result.outputFiles[0].text;
+  const template = fs.readFileSync(TEMPLATE, "utf-8");
+
+  // Inject JS into the HTML template
+  const html = template.replace("/* __WIDGET_JS__ */", js);
+
+  fs.mkdirSync(DIST_DIR, { recursive: true });
+  const outPath = path.join(DIST_DIR, "widget.html");
+  fs.writeFileSync(outPath, html, "utf-8");
+
+  const sizeKB = (Buffer.byteLength(html) / 1024).toFixed(1);
+  console.log(`✓ Widget built: ${outPath} (${sizeKB} KB)`);
+}
+
+build().catch((err) => {
+  console.error("Widget build failed:", err);
+  process.exit(1);
+});
