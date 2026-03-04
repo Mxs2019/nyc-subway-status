@@ -2,9 +2,11 @@
  * GET /api — Discovery endpoint describing all available API endpoints.
  */
 
+import { NextResponse } from "next/server";
 import { apiSuccess } from "@/lib/api-helpers";
 
 export async function GET() {
+  try {
   return apiSuccess(
     {
       name: "NYC Subway Status API",
@@ -62,6 +64,19 @@ export async function GET() {
           },
           example: "/api/trips/051800_Q..N03R?route=q",
         },
+        trip_plan: {
+          url: "/api/trips/plan?origin={stationSlug}&destination={stationSlug}",
+          description:
+            "Plan a trip between two stations. Returns upcoming trains with departure, arrival, and travel times.",
+          params: {
+            origin: "Origin station slug (required)",
+            destination: "Destination station slug (required)",
+            route: "Route slug filter (optional)",
+            depart_after: "ISO timestamp — only trips departing at/after this time (optional)",
+            limit: "Max trips to return (optional, default: 5, max: 20)",
+          },
+          example: "/api/trips/plan?origin=14-st-union-sq&destination=72-st-n-q-r&route=q",
+        },
         mcp_server: {
           url: "/mcp",
           description:
@@ -73,6 +88,7 @@ export async function GET() {
             "list_stations",
             "list_routes",
             "get_trip",
+            "plan_trip",
           ],
         },
       },
@@ -86,4 +102,9 @@ export async function GET() {
     },
     "/api",
   );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : undefined;
+    return NextResponse.json({ ok: false, error: message, stack }, { status: 500 });
+  }
 }
