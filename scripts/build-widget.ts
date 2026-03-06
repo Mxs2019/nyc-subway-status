@@ -6,12 +6,17 @@
 import * as esbuild from "esbuild";
 import * as fs from "fs";
 import * as path from "path";
+import { pathToFileURL } from "url";
 
 const ROOT = path.resolve(import.meta.dirname ?? path.dirname(new URL(import.meta.url).pathname), "..");
 const WIDGET_DIR = path.join(ROOT, "src", "widget");
 const DIST_DIR = path.join(WIDGET_DIR, "dist");
 const TEMPLATE = path.join(WIDGET_DIR, "template.html");
 const ENTRY = path.join(WIDGET_DIR, "app.ts");
+
+export function injectWidgetJs(template: string, js: string): string {
+  return template.replace("/* __WIDGET_JS__ */", () => js);
+}
 
 async function build() {
   // Bundle TS → JS (single file, no external deps)
@@ -29,7 +34,7 @@ async function build() {
   const template = fs.readFileSync(TEMPLATE, "utf-8");
 
   // Inject JS into the HTML template
-  const html = template.replace("/* __WIDGET_JS__ */", js);
+  const html = injectWidgetJs(template, js);
 
   fs.mkdirSync(DIST_DIR, { recursive: true });
   const outPath = path.join(DIST_DIR, "widget.html");
@@ -39,7 +44,13 @@ async function build() {
   console.log(`✓ Widget built: ${outPath} (${sizeKB} KB)`);
 }
 
-build().catch((err) => {
-  console.error("Widget build failed:", err);
-  process.exit(1);
-});
+const isEntrypoint =
+  process.argv[1] &&
+  pathToFileURL(process.argv[1]).href === import.meta.url;
+
+if (isEntrypoint) {
+  build().catch((err) => {
+    console.error("Widget build failed:", err);
+    process.exit(1);
+  });
+}

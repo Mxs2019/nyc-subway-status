@@ -53,7 +53,8 @@ export const maxDuration = 60;
 
 let _widgetHtml: string | null = null;
 function getWidgetHtml(): string {
-  if (_widgetHtml !== null) return _widgetHtml;
+  const isProduction = process.env.NODE_ENV === "production";
+  if (isProduction && _widgetHtml !== null) return _widgetHtml;
   try {
     const widgetPath = path.join(
       process.cwd(),
@@ -62,11 +63,13 @@ function getWidgetHtml(): string {
       "dist",
       "widget.html",
     );
-    _widgetHtml = fs.readFileSync(widgetPath, "utf-8");
+    const html = fs.readFileSync(widgetPath, "utf-8");
+    if (isProduction) _widgetHtml = html;
+    return html;
   } catch {
-    _widgetHtml = "";
+    if (isProduction) _widgetHtml = "";
+    return "";
   }
-  return _widgetHtml;
 }
 
 // ---------------------------------------------------------------------------
@@ -84,6 +87,11 @@ function formatArrivalForMcp(
     minutes_away: Math.max(0, Math.round((a.arrivalTime - now) / 60)),
     arrival_time_iso: new Date(a.arrivalTime * 1000).toISOString(),
   };
+}
+
+function normalizeCssColor(color: string | undefined, fallback: string): string {
+  if (!color) return fallback;
+  return color.startsWith("#") ? color : `#${color}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -110,14 +118,6 @@ function createMcpServer(): McpServer {
           uri: "ui://nyc-subway/widget.html",
           mimeType: RESOURCE_MIME_TYPE,
           text: getWidgetHtml(),
-          _meta: {
-            ui: {
-              csp: {
-                connectDomains: ["nyc-subway-status.com"],
-              },
-              domain: "42eb2e8c5db8e0b08122c792af09944a.claudemcpcontent.com",
-            },
-          },
         },
       ],
     }),
@@ -164,8 +164,8 @@ function createMcpServer(): McpServer {
             return r
               ? {
                   name: r.shortName,
-                  color: `#${r.color}`,
-                  text_color: `#${r.textColor}`,
+                  color: normalizeCssColor(r.color, "#999"),
+                  text_color: normalizeCssColor(r.textColor, "#fff"),
                 }
               : null;
           }).filter(Boolean),
@@ -179,8 +179,8 @@ function createMcpServer(): McpServer {
           name: r.shortName,
           long_name: r.longName,
           slug: r.slug,
-          color: route ? `#${route.color}` : "#999",
-          text_color: route ? `#${route.textColor}` : "#fff",
+          color: normalizeCssColor(route?.color, "#999"),
+          text_color: normalizeCssColor(route?.textColor, "#fff"),
         };
       });
 
@@ -304,8 +304,8 @@ function createMcpServer(): McpServer {
         station: station.name,
         route: {
           name: route.shortName,
-          color: `#${route.color}`,
-          text_color: `#${route.textColor}`,
+          color: normalizeCssColor(route.color, "#999"),
+          text_color: normalizeCssColor(route.textColor, "#fff"),
         },
         uptown_arrivals: uptownArr.map((a) => ({
           headsign: a.headsign,
@@ -476,8 +476,8 @@ function createMcpServer(): McpServer {
             const r = getRoutes().find((rt) => rt.shortName === routeName);
             return {
               name: routeName,
-              color: r ? `#${r.color}` : "#999",
-              text_color: r ? `#${r.textColor}` : "#fff",
+              color: normalizeCssColor(r?.color, "#999"),
+              text_color: normalizeCssColor(r?.textColor, "#fff"),
               uptown: dirs.uptown || [],
               downtown: dirs.downtown || [],
             };
@@ -645,8 +645,8 @@ function createMcpServer(): McpServer {
           trip_id: trip.tripId,
           route: {
             name: route.shortName,
-            color: `#${route.color}`,
-            text_color: `#${route.textColor}`,
+            color: normalizeCssColor(route.color, "#999"),
+            text_color: normalizeCssColor(route.textColor, "#fff"),
           },
           direction: trip.directionId === 0 ? "uptown" : "downtown",
           stops: stops.map((s) => ({
@@ -815,8 +815,8 @@ function createMcpServer(): McpServer {
             return {
               route: {
                 name: t.route,
-                color: r ? `#${r.color}` : "#999",
-                text_color: r ? `#${r.textColor}` : "#fff",
+                color: normalizeCssColor(r?.color, "#999"),
+                text_color: normalizeCssColor(r?.textColor, "#fff"),
               },
               depart_minutes: t.depart_origin_minutes,
               arrive_minutes: t.arrive_destination_minutes,
@@ -910,12 +910,33 @@ async function handleMcpRequest(request: Request): Promise<Response> {
     contentType: response.headers.get("content-type") || "(none)",
   });
 
-  return response;
+  return addCorsHeaders(response, request);
+}
+
+function addCorsHeaders(response: Response, request: Request): Response {
+  const origin = request.headers.get("origin") || "*";
+  const headers = new Headers(response.headers);
+  headers.set("Access-Control-Allow-Origin", origin);
+  headers.set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+  headers.set(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Accept, Mcp-Session-Id, mcp-protocol-version",
+  );
+  headers.set("Access-Control-Expose-Headers", "Mcp-Session-Id");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
 
 // ---------------------------------------------------------------------------
 // Next.js App Router HTTP handlers
 // ---------------------------------------------------------------------------
+
+export async function OPTIONS(request: Request): Promise<Response> {
+  return addCorsHeaders(new Response(null, { status: 204 }), request);
+}
 
 export async function POST(request: Request): Promise<Response> {
   return handleMcpRequest(request);
