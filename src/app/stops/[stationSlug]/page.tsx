@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/page-header";
 import { RouteBullet } from "@/components/route-bullet";
 import { ArrivalTime } from "@/components/arrival-time";
 import { RecentTracker } from "@/components/recent-tracker";
+import { FavoriteButton } from "@/components/favorite-button";
 import { getAllArrivalsForStation, getServiceAlerts, type ServiceAlert } from "@/lib/gtfsrt";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { ServiceAlerts } from "@/components/service-alerts";
@@ -115,7 +116,12 @@ export default async function StationPage({ params }: Props) {
       />
       <AutoRefresh />
       <RecentTracker type="stop" stationSlug={station.slug} />
-      <PageHeader title={station.name} backHref="/stops" backLabel="All Stops" />
+      <PageHeader
+        title={station.name}
+        backHref="/stops"
+        backLabel="All Stops"
+        trailing={<FavoriteButton stationSlug={station.slug} />}
+      />
 
       <div className="flex flex-wrap items-center gap-2 mb-6">
         {routes.map((route) => (

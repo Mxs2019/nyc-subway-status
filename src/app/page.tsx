@@ -1,5 +1,6 @@
 import { getRoutes, getStationRoutes, getStations } from "@/lib/gtfs";
 import { HomeSearch } from "@/components/home-search";
+import { FavoriteStations } from "@/components/favorite-stations";
 import { NearbyStations } from "@/components/nearby-stations";
 import { RecentStations } from "@/components/recent-stations";
 
@@ -21,6 +22,13 @@ export default function Home() {
           routes={routes}
           stationRoutes={stationRoutes}
         >
+          <div className="mt-4">
+            <FavoriteStations
+              stations={stations}
+              routes={routes}
+              stationRoutes={stationRoutes}
+            />
+          </div>
           <div className="mt-4">
             <NearbyStations
               stations={stations}

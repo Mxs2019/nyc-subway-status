@@ -3,6 +3,7 @@ interface PageHeaderProps {
   backHref?: string;
   backLabel?: string;
   children?: React.ReactNode;
+  trailing?: React.ReactNode;
 }
 
 export function PageHeader({
@@ -10,6 +11,7 @@ export function PageHeader({
   backHref,
   backLabel,
   children,
+  trailing,
 }: PageHeaderProps) {
   return (
     <header className="mb-8">
@@ -23,6 +25,7 @@ export function PageHeader({
       <div className="flex items-center gap-3">
         {children}
         <h1 className="text-xl font-bold tracking-tight">{title}</h1>
+        {trailing}
       </div>
     </header>
   );
