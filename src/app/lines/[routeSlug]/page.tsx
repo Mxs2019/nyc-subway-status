@@ -69,7 +69,7 @@ export default async function RoutePage({ params }: Props) {
   };
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-8">
+    <main id="main-content" className="max-w-2xl mx-auto px-4 py-8">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

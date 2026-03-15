@@ -23,12 +23,13 @@ export function SearchFilter<T extends object>({
   const { items: filtered } = useFuzzySearch(items, fields, query, idField);
 
   return (
-    <div>
+    <div role="search" aria-label={placeholder}>
       <input
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder}
+        aria-label={placeholder}
         className="w-full border border-border px-3 py-2 text-sm bg-white focus:outline-none focus:border-foreground"
       />
       <div className="mt-4">{children(filtered)}</div>

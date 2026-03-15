@@ -103,12 +103,13 @@ export function HomeSearch({ stations, routes, stationRoutes, children }: HomeSe
   sections.sort((a, b) => b.score - a.score);
 
   return (
-    <div>
+    <div role="search" aria-label="Search stops and lines">
       <input
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search stops and lines..."
+        aria-label="Search stops and lines"
         className="w-full border border-border px-3 py-2 text-sm bg-white focus:outline-none focus:border-foreground"
       />
 

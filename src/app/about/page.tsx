@@ -51,7 +51,7 @@ const changelog: { date: string; changes: string[] }[] = [
 
 export default function AboutPage() {
   return (
-    <main className="max-w-2xl mx-auto px-4 py-12">
+    <main id="main-content" className="max-w-2xl mx-auto px-4 py-12">
       <a
         href="/"
         className="text-sm text-muted hover:text-foreground transition-colors"

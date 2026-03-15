@@ -26,7 +26,7 @@ export function ArrivalTime({ timestamp }: ArrivalTimeProps) {
   }
 
   return (
-    <span className="tabular-nums">
+    <span className="tabular-nums" aria-label={`Arriving in ${relative}, at ${absoluteTime}`} aria-live="polite">
       <span className="font-bold">{relative}</span>
       <span className="text-muted ml-2 text-xs">{absoluteTime}</span>
     </span>

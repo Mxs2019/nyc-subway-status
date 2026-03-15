@@ -15,7 +15,7 @@ export default function StopsPage() {
   const routes = getRoutes();
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-8">
+    <main id="main-content" className="max-w-2xl mx-auto px-4 py-8">
       <PageHeader
         title="All Stops"
         backHref="/"

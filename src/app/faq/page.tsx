@@ -56,7 +56,7 @@ export default function FaqPage() {
   };
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-12">
+    <main id="main-content" className="max-w-2xl mx-auto px-4 py-12">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

@@ -103,6 +103,8 @@ export function RouteBullet({
     <span
       className={`${sizes[size]} inline-flex items-center justify-center rounded-full font-bold shrink-0 no-underline ${ring ? "ring-2 ring-white" : ""}`}
       style={{ backgroundColor: bgColor, color: textColor }}
+      role="img"
+      aria-label={`${shortName} train`}
     >
       {shortName}
     </span>

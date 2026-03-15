@@ -10,7 +10,7 @@ export default function Home() {
   const stationRoutes = getStationRoutes();
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-12">
+    <main id="main-content" className="max-w-2xl mx-auto px-4 py-12">
       <h1 className="text-2xl font-bold tracking-tight">NYC Subway Status</h1>
       <p className="mt-2 text-muted text-xs leading-relaxed">
         Real-time arrival times for every station and line.

@@ -17,7 +17,7 @@ export function PageHeader({
     <header className="mb-8">
       <div className="flex items-center gap-3 mb-1">
         {backHref && (
-          <a href={backHref} className="text-muted text-xs no-underline">
+          <a href={backHref} className="text-muted text-xs no-underline" aria-label={`Go back to ${backLabel || "previous page"}`}>
             ← {backLabel || "Back"}
           </a>
         )}

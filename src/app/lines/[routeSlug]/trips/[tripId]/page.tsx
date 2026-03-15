@@ -67,7 +67,7 @@ export default async function TripPage({ params, searchParams }: Props) {
   const destination = lastStation ? lastStation.name : "";
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-8">
+    <main id="main-content" className="max-w-2xl mx-auto px-4 py-8">
       <AutoRefresh />
       <PageHeader
         title={`${dirLabel}${destination ? ` to ${destination}` : ""}`}

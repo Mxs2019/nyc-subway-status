@@ -82,7 +82,7 @@ export default async function StationRoutePage({ params }: Props) {
   }
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-8">
+    <main id="main-content" className="max-w-2xl mx-auto px-4 py-8">
       <AutoRefresh />
       <RecentTracker type="arrival" stationSlug={station.slug} routeSlug={route.slug} />
       <PageHeader

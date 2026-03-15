@@ -13,7 +13,7 @@ export default function LinesPage() {
   const routes = getRoutes();
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-8">
+    <main id="main-content" className="max-w-2xl mx-auto px-4 py-8">
       <PageHeader title="All Lines" backHref="/" backLabel="Home" />
       <p className="text-muted text-xs mb-4">{routes.length} lines</p>
       <RouteList routes={routes} />
