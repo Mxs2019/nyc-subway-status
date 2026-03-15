@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { DevTools } from "@/components/dev-tools";
+import { PostHogProvider } from "@/components/posthog-provider";
 import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
 
@@ -54,8 +55,10 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        {children}
-        <SiteFooter />
+        <PostHogProvider>
+          {children}
+          <SiteFooter />
+        </PostHogProvider>
         <DevTools />
         <Analytics />
       </body>
