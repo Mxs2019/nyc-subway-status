@@ -14,6 +14,7 @@ import { FavoriteButton } from "@/components/favorite-button";
 import { getAllArrivalsForStation, getServiceAlerts, type ServiceAlert } from "@/lib/gtfsrt";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { ServiceAlerts } from "@/components/service-alerts";
+import { BreadcrumbJsonLd } from "@/components/breadcrumb-jsonld";
 
 // No caching — every page load fetches fresh realtime data server-side
 export const dynamic = "force-dynamic";
@@ -114,6 +115,11 @@ export default async function StationPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <BreadcrumbJsonLd items={[
+        { name: "Home", href: "/" },
+        { name: "All Stops", href: "/stops" },
+        { name: station.name },
+      ]} />
       <AutoRefresh />
       <RecentTracker type="stop" stationSlug={station.slug} />
       <PageHeader

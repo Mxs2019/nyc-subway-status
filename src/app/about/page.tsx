@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BreadcrumbJsonLd } from "@/components/breadcrumb-jsonld";
 
 export const metadata: Metadata = {
   title: "About",
@@ -52,6 +53,7 @@ const changelog: { date: string; changes: string[] }[] = [
 export default function AboutPage() {
   return (
     <main id="main-content" className="max-w-2xl mx-auto px-4 py-12">
+      <BreadcrumbJsonLd items={[{ name: "Home", href: "/" }, { name: "About" }]} />
       <a
         href="/"
         className="text-sm text-muted hover:text-foreground transition-colors"

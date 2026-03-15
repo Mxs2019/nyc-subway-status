@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BreadcrumbJsonLd } from "@/components/breadcrumb-jsonld";
 
 export const metadata: Metadata = {
   title: "API Docs",
@@ -9,6 +10,7 @@ export const metadata: Metadata = {
 export default function DocsPage() {
   return (
     <main id="main-content" className="max-w-2xl mx-auto px-4 py-12">
+      <BreadcrumbJsonLd items={[{ name: "Home", href: "/" }, { name: "API Docs" }]} />
       <a
         href="/"
         className="text-sm text-muted hover:text-foreground transition-colors"

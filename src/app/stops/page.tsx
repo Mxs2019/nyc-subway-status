@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getRoutes, getStationRoutes, getStations } from "@/lib/gtfs";
 import { PageHeader } from "@/components/page-header";
 import { StationList } from "@/components/station-list";
+import { BreadcrumbJsonLd } from "@/components/breadcrumb-jsonld";
 
 export const metadata: Metadata = {
   title: "All Stops",
@@ -16,6 +17,7 @@ export default function StopsPage() {
 
   return (
     <main id="main-content" className="max-w-2xl mx-auto px-4 py-8">
+      <BreadcrumbJsonLd items={[{ name: "Home", href: "/" }, { name: "All Stops" }]} />
       <PageHeader
         title="All Stops"
         backHref="/"

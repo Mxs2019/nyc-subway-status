@@ -12,6 +12,7 @@ import { ArrivalTime } from "@/components/arrival-time";
 import { RecentTracker } from "@/components/recent-tracker";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { ServiceAlerts } from "@/components/service-alerts";
+import { BreadcrumbJsonLd } from "@/components/breadcrumb-jsonld";
 
 // No caching — every page load fetches fresh realtime data server-side
 export const dynamic = "force-dynamic";
@@ -74,6 +75,11 @@ export default async function RoutePage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <BreadcrumbJsonLd items={[
+        { name: "Home", href: "/" },
+        { name: "All Lines", href: "/lines" },
+        { name: `${route.shortName} Line` },
+      ]} />
       <AutoRefresh />
       <RecentTracker type="line" routeSlug={route.slug} />
       <PageHeader title={`${route.longName}`} backHref="/lines" backLabel="All Lines">

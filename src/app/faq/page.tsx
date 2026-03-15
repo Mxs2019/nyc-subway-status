@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BreadcrumbJsonLd } from "@/components/breadcrumb-jsonld";
 
 export const metadata: Metadata = {
   title: "FAQ",
@@ -61,6 +62,7 @@ export default function FaqPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <BreadcrumbJsonLd items={[{ name: "Home", href: "/" }, { name: "FAQ" }]} />
       <a
         href="/"
         className="text-sm text-muted hover:text-foreground transition-colors"

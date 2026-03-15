@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getRoutes } from "@/lib/gtfs";
 import { PageHeader } from "@/components/page-header";
 import { RouteList } from "@/components/route-list";
+import { BreadcrumbJsonLd } from "@/components/breadcrumb-jsonld";
 
 export const metadata: Metadata = {
   title: "All Lines",
@@ -14,6 +15,7 @@ export default function LinesPage() {
 
   return (
     <main id="main-content" className="max-w-2xl mx-auto px-4 py-8">
+      <BreadcrumbJsonLd items={[{ name: "Home", href: "/" }, { name: "All Lines" }]} />
       <PageHeader title="All Lines" backHref="/" backLabel="Home" />
       <p className="text-muted text-xs mb-4">{routes.length} lines</p>
       <RouteList routes={routes} />

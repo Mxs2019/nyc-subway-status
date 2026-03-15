@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/page-header";
 import { RouteBullet } from "@/components/route-bullet";
 import { ArrivalTime } from "@/components/arrival-time";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { BreadcrumbJsonLd } from "@/components/breadcrumb-jsonld";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -68,6 +69,12 @@ export default async function TripPage({ params, searchParams }: Props) {
 
   return (
     <main id="main-content" className="max-w-2xl mx-auto px-4 py-8">
+      <BreadcrumbJsonLd items={[
+        { name: "Home", href: "/" },
+        { name: "All Lines", href: "/lines" },
+        { name: `${route.shortName} Line`, href: `/lines/${route.slug}` },
+        { name: `${dirLabel}${destination ? ` to ${destination}` : ""}` },
+      ]} />
       <AutoRefresh />
       <PageHeader
         title={`${dirLabel}${destination ? ` to ${destination}` : ""}`}
