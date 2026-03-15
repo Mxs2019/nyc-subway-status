@@ -54,8 +54,26 @@ export default async function RoutePage({ params }: Props) {
     console.error("Failed to fetch realtime data for route:", err);
   }
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://nyc-subway-status.com";
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "TransitLine",
+    name: route.longName,
+    alternateName: `${route.shortName} Train`,
+    url: `${siteUrl}/lines/${route.slug}`,
+    provider: {
+      "@type": "Organization",
+      name: "Metropolitan Transportation Authority (MTA)",
+      url: "https://www.mta.info",
+    },
+  };
+
   return (
     <main className="max-w-2xl mx-auto px-4 py-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <AutoRefresh />
       <RecentTracker type="line" routeSlug={route.slug} />
       <PageHeader title={`${route.longName}`} backHref="/lines" backLabel="All Lines">
