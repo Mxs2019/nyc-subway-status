@@ -5,12 +5,13 @@ import {
   getRoutes,
   getStationsForRoute,
 } from "@/lib/gtfs";
-import { getNextArrivalsForRoute } from "@/lib/gtfsrt";
+import { getNextArrivalsForRoute, getServiceAlerts, type ServiceAlert } from "@/lib/gtfsrt";
 import { PageHeader } from "@/components/page-header";
 import { RouteBullet } from "@/components/route-bullet";
 import { ArrivalTime } from "@/components/arrival-time";
 import { RecentTracker } from "@/components/recent-tracker";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { ServiceAlerts } from "@/components/service-alerts";
 
 // No caching — every page load fetches fresh realtime data server-side
 export const dynamic = "force-dynamic";
@@ -43,8 +44,12 @@ export default async function RoutePage({ params }: Props) {
   const stations = getStationsForRoute(route.id);
 
   let nextArrivals: Awaited<ReturnType<typeof getNextArrivalsForRoute>> = new Map();
+  let alerts: ServiceAlert[] = [];
   try {
-    nextArrivals = await getNextArrivalsForRoute(route.id, stations);
+    [nextArrivals, alerts] = await Promise.all([
+      getNextArrivalsForRoute(route.id, stations),
+      getServiceAlerts({ routeIds: [route.id] }).catch(() => [] as ServiceAlert[]),
+    ]);
   } catch (err) {
     console.error("Failed to fetch realtime data for route:", err);
   }
@@ -70,6 +75,8 @@ export default async function RoutePage({ params }: Props) {
           {stations.length} stations · ↑ Uptown · ↓ Downtown
         </p>
       </div>
+
+      <ServiceAlerts alerts={alerts} />
 
       <section>
         <ul>

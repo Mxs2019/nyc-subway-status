@@ -10,8 +10,9 @@ import { PageHeader } from "@/components/page-header";
 import { RouteBullet } from "@/components/route-bullet";
 import { ArrivalTime } from "@/components/arrival-time";
 import { RecentTracker } from "@/components/recent-tracker";
-import { getAllArrivalsForStation } from "@/lib/gtfsrt";
+import { getAllArrivalsForStation, getServiceAlerts, type ServiceAlert } from "@/lib/gtfsrt";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { ServiceAlerts } from "@/components/service-alerts";
 
 // No caching — every page load fetches fresh realtime data server-side
 export const dynamic = "force-dynamic";
@@ -52,13 +53,22 @@ export default async function StationPage({ params }: Props) {
   let error: string | null = null;
   const uptownArrivals: StationArrival[] = [];
   const downtownArrivals: StationArrival[] = [];
+  let alerts: ServiceAlert[] = [];
 
   try {
-    const arrivalsByRoute = await getAllArrivalsForStation(
-      station.childStopIds,
-      routes.map((route) => route.id),
-      3
-    );
+    const [arrivalsByRoute, fetchedAlerts] = await Promise.all([
+      getAllArrivalsForStation(
+        station.childStopIds,
+        routes.map((route) => route.id),
+        3,
+      ),
+      getServiceAlerts({
+        routeIds: routes.map((r) => r.id),
+        stopIds: station.childStopIds,
+      }).catch(() => [] as ServiceAlert[]),
+    ]);
+
+    alerts = fetchedAlerts;
 
     for (const route of routes) {
       const directionArrivals = arrivalsByRoute.get(route.id) || [];
@@ -124,6 +134,8 @@ export default async function StationPage({ params }: Props) {
           </a>
         ))}
       </div>
+
+      <ServiceAlerts alerts={alerts} />
 
       <h2 className="text-lg font-bold mb-4">Upcoming Trains</h2>
 

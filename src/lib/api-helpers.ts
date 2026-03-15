@@ -4,7 +4,7 @@
  */
 
 import { NextResponse } from "next/server";
-import type { Arrival } from "./gtfsrt";
+import type { Arrival, ServiceAlert } from "./gtfsrt";
 
 interface ApiMeta {
   timestamp: string;
@@ -57,5 +57,22 @@ export function formatArrival(arrival: Arrival, nowSeconds: number) {
     arrival_time: arrival.arrivalTime,
     arrival_time_iso: new Date(arrival.arrivalTime * 1000).toISOString(),
     minutes_away: minutesAway,
+  };
+}
+
+export function formatAlert(alert: ServiceAlert) {
+  return {
+    id: alert.id,
+    header: alert.headerText,
+    description: alert.descriptionText,
+    cause: alert.cause,
+    effect: alert.effect,
+    severity: alert.severity,
+    route_ids: alert.routeIds,
+    stop_ids: alert.stopIds,
+    active_periods: alert.activePeriods.map((p) => ({
+      start: p.start ? new Date(p.start * 1000).toISOString() : null,
+      end: p.end ? new Date(p.end * 1000).toISOString() : null,
+    })),
   };
 }

@@ -13,6 +13,7 @@
  *   get_trip             — Track a specific train by trip ID
  *   plan_trip            — Plan a trip between two stations
  *   refresh_arrivals     — App-only: refresh arrivals without model involvement
+ *   get_alerts           — Active MTA service alerts (delays, disruptions)
  */
 
 import * as fs from "node:fs";
@@ -41,7 +42,9 @@ import {
   getAllArrivalsForStation,
   getTripById,
   planTrip,
+  getServiceAlerts,
 } from "@/lib/gtfsrt";
+import { formatAlert } from "@/lib/api-helpers";
 import { search } from "@/lib/search";
 
 export const dynamic = "force-dynamic";
@@ -94,6 +97,15 @@ function normalizeCssColor(color: string | undefined, fallback: string): string 
   return color.startsWith("#") ? color : `#${color}`;
 }
 
+const WIDGET_URI = "ui://nyc-subway/widget-v2.html";
+
+function getToolUiMeta(visibility?: Array<"model" | "app">) {
+  return {
+    ui: visibility ? { resourceUri: WIDGET_URI, visibility } : { resourceUri: WIDGET_URI },
+    "openai/outputTemplate": WIDGET_URI,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Create and configure the MCP server with all tools + resources
 // ---------------------------------------------------------------------------
@@ -110,14 +122,22 @@ function createMcpServer(): McpServer {
   registerAppResource(
     server,
     "widget",
-    "ui://nyc-subway/widget.html",
+    WIDGET_URI,
     { mimeType: RESOURCE_MIME_TYPE },
     async () => ({
       contents: [
         {
-          uri: "ui://nyc-subway/widget.html",
+          uri: WIDGET_URI,
           mimeType: RESOURCE_MIME_TYPE,
           text: getWidgetHtml(),
+          _meta: {
+            ui: {
+              prefersBorder: true,
+            },
+            "openai/widgetDescription":
+              "Interactive NYC subway widget showing search results, arrivals, trip details, and trip plans.",
+            "openai/widgetPrefersBorder": true,
+          },
         },
       ],
     }),
@@ -138,7 +158,7 @@ function createMcpServer(): McpServer {
           .string()
           .describe('Search query, e.g. "union square", "72 st", "Q train"'),
       },
-      _meta: { ui: { resourceUri: "ui://nyc-subway/widget.html" } },
+      _meta: getToolUiMeta(),
     },
     async ({ query }) => {
       const results = search(query, 10);
@@ -346,7 +366,7 @@ function createMcpServer(): McpServer {
       description:
         "Get real-time arrival times for a specific route at a specific station. Returns upcoming trains in both directions with minutes_away. Use search_subway first to find slugs.",
       inputSchema: arrivalsInputSchema,
-      _meta: { ui: { resourceUri: "ui://nyc-subway/widget.html" } },
+      _meta: getToolUiMeta(),
     },
     handleGetArrivals,
   );
@@ -362,12 +382,7 @@ function createMcpServer(): McpServer {
       description:
         "Refresh real-time arrival data. Same as get_arrivals but designed for app widget auto-refresh without model involvement.",
       inputSchema: arrivalsInputSchema,
-      _meta: {
-        ui: {
-          resourceUri: "ui://nyc-subway/widget.html",
-          visibility: ["app"],
-        },
-      },
+      _meta: getToolUiMeta(["app"]),
     },
     handleGetArrivals,
   );
@@ -403,7 +418,7 @@ function createMcpServer(): McpServer {
             'Filter to specific route slugs, e.g. ["q", "n"] (optional)',
           ),
       },
-      _meta: { ui: { resourceUri: "ui://nyc-subway/widget.html" } },
+      _meta: getToolUiMeta(),
     },
     async ({ station_slug, direction, limit, routes: routeFilter }) => {
       const station = getStationBySlug(station_slug);
@@ -505,7 +520,7 @@ function createMcpServer(): McpServer {
             'Filter to stations on this route, e.g. "q" (optional)',
           ),
       },
-      _meta: { ui: { resourceUri: "ui://nyc-subway/widget.html" } },
+      _meta: getToolUiMeta(),
     },
     async ({ route_slug }) => {
       let stations = getStations();
@@ -546,7 +561,7 @@ function createMcpServer(): McpServer {
       description:
         "List all NYC subway routes/lines. Returns route names, slugs, and colors.",
       inputSchema: {},
-      _meta: { ui: { resourceUri: "ui://nyc-subway/widget.html" } },
+      _meta: getToolUiMeta(),
     },
     async () => {
       const routes = getRoutes();
@@ -580,7 +595,7 @@ function createMcpServer(): McpServer {
           .string()
           .describe("Route slug (lowercase), e.g. 'q'"),
       },
-      _meta: { ui: { resourceUri: "ui://nyc-subway/widget.html" } },
+      _meta: getToolUiMeta(),
     },
     async ({ trip_id, route_slug }) => {
       const route = getRouteBySlug(route_slug);
@@ -689,7 +704,7 @@ function createMcpServer(): McpServer {
           .optional()
           .describe("Max trips to return (default: 5, max: 20)"),
       },
-      _meta: { ui: { resourceUri: "ui://nyc-subway/widget.html" } },
+      _meta: getToolUiMeta(),
     },
     async ({ origin_slug, destination_slug, route_slug, depart_after, limit }) => {
       const origin = getStationBySlug(origin_slug);
@@ -825,6 +840,85 @@ function createMcpServer(): McpServer {
             };
           }),
         },
+      };
+    },
+  );
+
+  // -----------------------------------------------------------------
+  // get_alerts
+  // -----------------------------------------------------------------
+  registerAppTool(
+    server,
+    "get_alerts",
+    {
+      title: "Get Service Alerts",
+      description:
+        "Get active MTA service alerts. Optionally filter by route or station. Returns disruptions like delays, service changes, and planned work.",
+      inputSchema: {
+        route_slug: z
+          .string()
+          .optional()
+          .describe(
+            'Filter to alerts affecting this route, e.g. "q", "a" (optional)',
+          ),
+        station_slug: z
+          .string()
+          .optional()
+          .describe(
+            "Filter to alerts affecting this station (optional)",
+          ),
+      },
+      _meta: getToolUiMeta(),
+    },
+    async ({ route_slug, station_slug }) => {
+      let routeIds: string[] | undefined;
+      let stopIds: string[] | undefined;
+
+      if (route_slug) {
+        const route = getRouteBySlug(route_slug);
+        if (!route) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: `Route not found: "${route_slug}". Use search_subway to find the correct slug.`,
+              },
+            ],
+            isError: true,
+          };
+        }
+        routeIds = [route.id];
+      }
+
+      if (station_slug) {
+        const station = getStationBySlug(station_slug);
+        if (!station) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: `Station not found: "${station_slug}". Use search_subway to find the correct slug.`,
+              },
+            ],
+            isError: true,
+          };
+        }
+        stopIds = station.childStopIds;
+      }
+
+      const alerts = await getServiceAlerts({ routeIds, stopIds });
+      const formatted = alerts.map(formatAlert);
+
+      const textData = {
+        alerts: formatted,
+        count: formatted.length,
+        fetched_at: new Date().toISOString(),
+      };
+
+      return {
+        content: [
+          { type: "text" as const, text: JSON.stringify(textData, null, 2) },
+        ],
       };
     },
   );

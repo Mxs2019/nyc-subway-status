@@ -9,6 +9,7 @@ import GtfsRealtimeBindings from "gtfs-realtime-bindings";
 import { getStationByChildStopId } from "./gtfs";
 
 const { FeedMessage } = GtfsRealtimeBindings.transit_realtime;
+const AlertProto = GtfsRealtimeBindings.transit_realtime.Alert;
 
 // ---------------------------------------------------------------------------
 // MTA feed URLs — one feed per line group
@@ -649,4 +650,146 @@ export async function planTrip(
 
   trips.sort((a, b) => a.departOriginTime - b.departOriginTime);
   return trips.slice(0, limit);
+}
+
+// ---------------------------------------------------------------------------
+// Service Alerts
+// ---------------------------------------------------------------------------
+
+const DEFAULT_ALERTS_URL =
+  "https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/camsys%2Fall-alerts";
+
+const CAUSE_LABELS: Record<number, string> = {
+  1: "Unknown",
+  2: "Other",
+  3: "Technical Problem",
+  4: "Strike",
+  5: "Demonstration",
+  6: "Accident",
+  7: "Holiday",
+  8: "Weather",
+  9: "Maintenance",
+  10: "Construction",
+  11: "Police Activity",
+  12: "Medical Emergency",
+};
+
+const EFFECT_LABELS: Record<number, string> = {
+  1: "No Service",
+  2: "Reduced Service",
+  3: "Significant Delays",
+  4: "Detour",
+  5: "Additional Service",
+  6: "Modified Service",
+  7: "Other",
+  8: "Unknown",
+  9: "Stop Moved",
+  10: "No Effect",
+  11: "Accessibility Issue",
+};
+
+const SEVERITY_LABELS: Record<number, string> = {
+  1: "unknown",
+  2: "info",
+  3: "warning",
+  4: "severe",
+};
+
+export interface ServiceAlert {
+  id: string;
+  headerText: string;
+  descriptionText: string;
+  cause: string;
+  effect: string;
+  severity: string;
+  routeIds: string[];
+  stopIds: string[];
+  activePeriods: { start: number | null; end: number | null }[];
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractTranslatedText(field: any): string {
+  if (!field?.translation?.length) return "";
+  const translations = field.translation as { text?: string | null; language?: string | null }[];
+  // Prefer English, fall back to first entry
+  const en = translations.find((t) => t.language === "en");
+  return (en?.text ?? translations[0]?.text) || "";
+}
+
+/**
+ * Fetch active service alerts, optionally filtered by route and/or stop IDs.
+ */
+export async function getServiceAlerts(opts?: {
+  routeIds?: string[];
+  stopIds?: string[];
+}): Promise<ServiceAlert[]> {
+  const url = process.env.GTFS_RT_ALERTS_URL || DEFAULT_ALERTS_URL;
+  const feed = await fetchFeed(url);
+  const now = Math.floor(Date.now() / 1000);
+
+  const routeFilter = opts?.routeIds ? new Set(opts.routeIds) : null;
+  const stopFilter = opts?.stopIds ? new Set(opts.stopIds) : null;
+
+  const alerts: ServiceAlert[] = [];
+
+  for (const entity of feed.entity) {
+    const alert = entity.alert;
+    if (!alert) continue;
+
+    // Collect affected route IDs and stop IDs
+    const routeIds: string[] = [];
+    const stopIds: string[] = [];
+    for (const ie of alert.informedEntity || []) {
+      if (ie.routeId) routeIds.push(ie.routeId);
+      if (ie.stopId) stopIds.push(ie.stopId);
+    }
+
+    // Filter by route if requested
+    if (routeFilter && !routeIds.some((id) => routeFilter.has(id))) continue;
+    // Filter by stop if requested
+    if (stopFilter && !stopIds.some((id) => stopFilter.has(id))) continue;
+
+    // Check active periods — include if any period overlaps with now,
+    // or if no periods are defined
+    const periods = (alert.activePeriod || []).map((p) => {
+      const start =
+        p.start != null
+          ? typeof p.start === "object" && "toNumber" in p.start
+            ? (p.start as { toNumber(): number }).toNumber()
+            : Number(p.start)
+          : null;
+      const end =
+        p.end != null
+          ? typeof p.end === "object" && "toNumber" in p.end
+            ? (p.end as { toNumber(): number }).toNumber()
+            : Number(p.end)
+          : null;
+      return { start, end };
+    });
+
+    if (periods.length > 0) {
+      const isActive = periods.some(
+        (p) => (p.start === null || p.start <= now) && (p.end === null || p.end >= now),
+      );
+      if (!isActive) continue;
+    }
+
+    const causeVal = alert.cause ?? AlertProto.Cause.UNKNOWN_CAUSE;
+    const effectVal = alert.effect ?? AlertProto.Effect.UNKNOWN_EFFECT;
+    const severityVal = alert.severityLevel ?? 1;
+
+    alerts.push({
+      id: entity.id || "",
+      headerText: extractTranslatedText(alert.headerText),
+      descriptionText: extractTranslatedText(alert.descriptionText),
+      cause: CAUSE_LABELS[causeVal as number] || "Unknown",
+      effect: EFFECT_LABELS[effectVal as number] || "Unknown",
+      severity: SEVERITY_LABELS[severityVal as number] || "unknown",
+      routeIds,
+      stopIds,
+      activePeriods: periods,
+    });
+  }
+
+  return alerts;
 }
