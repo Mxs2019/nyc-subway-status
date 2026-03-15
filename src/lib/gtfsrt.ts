@@ -151,13 +151,55 @@ function getFeedUrl(routeId: string): string {
   return DEFAULT_FEEDS[feedKey];
 }
 
+const FEED_TIMEOUT_MS = 10_000;
+
 async function fetchFeed(url: string) {
-  const response = await fetch(url, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`GTFS-RT fetch failed: ${response.status} ${response.statusText}`);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FEED_TIMEOUT_MS);
+  const start = Date.now();
+
+  try {
+    const response = await fetch(url, {
+      cache: "no-store",
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const duration = Date.now() - start;
+      console.error("[GTFS-RT] Feed fetch failed", {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        durationMs: duration,
+      });
+      throw new Error(`GTFS-RT fetch failed: ${response.status} ${response.statusText}`);
+    }
+
+    const buffer = await response.arrayBuffer();
+    return FeedMessage.decode(new Uint8Array(buffer));
+  } catch (err) {
+    const duration = Date.now() - start;
+    if (err instanceof DOMException && err.name === "AbortError") {
+      console.error("[GTFS-RT] Feed fetch timed out", {
+        url,
+        timeoutMs: FEED_TIMEOUT_MS,
+        durationMs: duration,
+      });
+      throw new Error(`GTFS-RT fetch timed out after ${FEED_TIMEOUT_MS}ms: ${url}`);
+    }
+    // Re-throw if it's our own error (already logged above)
+    if (err instanceof Error && err.message.startsWith("GTFS-RT fetch failed:")) {
+      throw err;
+    }
+    console.error("[GTFS-RT] Feed fetch error", {
+      url,
+      error: err instanceof Error ? err.message : String(err),
+      durationMs: duration,
+    });
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-  const buffer = await response.arrayBuffer();
-  return FeedMessage.decode(new Uint8Array(buffer));
 }
 
 // ---------------------------------------------------------------------------
@@ -453,8 +495,8 @@ export async function getAllArrivalsForStation(
       const url = DEFAULT_FEEDS[feedKey];
       try {
         return await fetchFeed(url);
-      } catch (err) {
-        console.error(`Failed to fetch feed ${feedKey}:`, err);
+      } catch {
+        // fetchFeed already logs structured error details
         return null;
       }
     })
