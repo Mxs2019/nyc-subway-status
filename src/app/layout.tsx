@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   description:
     "Real-time NYC subway arrival times for every station and line.",
   alternates: {
-    canonical: "./",
+    canonical: siteUrl,
   },
   openGraph: {
     type: "website",
